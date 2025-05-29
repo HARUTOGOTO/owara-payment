@@ -1,34 +1,128 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="utf-8">
-  <title>決済ページ</title>
-  <script src="https://widget.univapay.com/client/checkout.js"></script>
-  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
-</head><body style="display:flex;justify-content:center;align-items:center;height:100vh">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UnivaPay 決済ページ (LIFF)</title>
+    
+    <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+    
+    <script src="https://widget.univapay.com/client/checkout.js"></script>
+    <style>
+        body {
+            font-family: sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            text-align: center;
+        }
+        #payment-form button {
+            font-size: 1.5em;
+            padding: 15px 30px;
+            cursor: pointer;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+        }
+        #payment-form button:hover {
+            background-color: #0056b3;
+        }
+        .liff-status {
+            margin-bottom: 15px;
+            padding: 10px;
+            background-color: #f0f0f0;
+            border-radius: 3px;
+            font-size: 0.9em;
+        }
+    </style>
+</head>
+<body>
 
-<button id="payBtn" style="font-size:1.2rem;padding:1em 2em">便利メニュー ¥100</button>
+    <div class="liff-status" id="liff-status-message">LIFFを初期化中...</div>
 
-<script>
-(async () => {
-  // ① LIFF 初期化
-  await liff.init({ liffId: "YOUR_LIFF_ID" });        // ← 差し替え
-  const profile   = await liff.getProfile();
-  const userId    = profile.userId;                  // ← LINE USER ID
+    <h1>おわら風の盆｜決済テスト (LIFF)</h1>
+    <p>このボタンをクリックすると、UnivaPayの決済モーダルが表示されます。</p>
 
-  // ② ウィジェット生成
-  const checkout = UnivapayCheckout.create({
-    appId: "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJhcHBfdG9rZW4iLCJpYXQiOjE3NDg0OTQyMTEsIm1lcmNoYW50X2lkIjoiMTFmMDJlMTgtYzE1Ny0zOTk4LTk4NzgtY2I4N2ZlMzc3NjY4Iiwic3RvcmVfaWQiOiIxMWYwMmUxOC1lZjQ3LTQ5MWEtYWVjNy1iNzI4ZGQxNTM1NGMiLCJkb21haW5zIjpbImhhcnV0b2dvdG8uZ2l0aHViLmlvIl0sIm1vZGUiOiJ0ZXN0IiwiY3JlYXRvcl9pZCI6IjExZjAyZTE4LWMxNTctMzk5OC05ODc4LWNiODdmZTM3NzY2OCIsInZlcnNpb24iOjEsImp0aSI6IjExZjAzYzQ4LTY3NTktYjdhYi1hZjgwLWU3ZjdmZDU2ODQ1ZiJ9.virRF7QMEaez9Rof_vRcrGpb2CBtTDCD0vnlWpyGc_U",                       // ← ドメイン入り JWT
-    checkout: "payment",
-    amount: 100,
-    currency: "JPY",
-    title: "おわら風の盆｜決済",
-    header:"おわら風の盆｜決済",
-    description:"便利メニュー解放 ¥100",
-    autoClose:true,
-    metadata:{ line_user_id: userId }                // ★ 重要
-  });
+    <form id="payment-form" onsubmit="return false;">
+      <button type="button" id="univapay-payment-checkout">おわら風の盆の有料メニュー決済 (¥1)</button>
+    </form>
 
-  document.getElementById('payBtn').onclick = () => checkout.open();
-})();
-</script></body></html>
+    <script>
+      // LIFF初期化処理
+      async function initializeLiff() {
+        const statusMessageElement = document.getElementById('liff-status-message');
+        try {
+          // 注意: "YOUR_LIFF_ID_HERE" を実際のLIFF IDに置き換えてください。
+          await liff.init({ liffId: "YOUR_LIFF_ID_HERE" }); 
+          statusMessageElement.textContent = 'LIFFの初期化が完了しました。';
+          if (!liff.isInClient()) {
+            statusMessageElement.textContent += ' (LINE内ブラウザではありません)';
+          } else {
+            statusMessageElement.textContent += ' (LINE内ブラウザで実行中)';
+          }
+        } catch (error) {
+          console.error('LIFF initialization failed:', error);
+          statusMessageElement.textContent = 'LIFFの初期化に失敗しました: ' + error.message;
+          // LIFFの初期化に失敗した場合でも決済ボタンは機能させるか、
+          // あるいはボタンを無効にするなどの処理をここに入れることもできます。
+        }
+      }
+
+      // Univapay Checkout 初期化処理
+      function initializeUnivapayCheckout() {
+        var checkout = UnivapayCheckout.create({
+          appId: "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJhcHBfdG9rZW4iLCJpYXQiOjE3NDg0OTQyMTEsIm1lcmNoYW50X2lkIjoiMTFmMDJlMTgtYzE1Ny0zOTk4LTk4NzgtY2I4N2ZlMzc3NjY4Iiwic3RvcmVfaWQiOiIxMWYwMmUxOC1lZjQ3LTQ5MWEtYWVjNy1iNzI4ZGQxNTM1NGMiLCJkb21haW5zIjpbImhhcnV0b2dvdG8uZ2l0aHViLmlvIl0sIm1vZGUiOiJ0ZXN0IiwiY3JlYXRvcl9pZCI6IjExZjAyZTE4LWMxNTctMzk5OC05ODc4LWNiODdmZTM3NzY2OCIsInZlcnNpb24iOjEsImp0aSI6IjExZjAzYzQ4LTY3NTktYjdhYi1hZjgwLWU3ZjdmZDU2ODQ1ZiJ9.virRF7QMEaez9Rof_vRcrGpb2CBtTDCD0vnlWpyGc_U", // あなたのApp ID
+          checkout: "payment",
+          amount: 1,
+          currency: "jpy",
+          title: "おわら風の盆｜決済画面",
+          header: "おわら風の盆｜決済画面",
+          description: "おわら風の盆の有料メニューを表示させるための決済（¥1）",
+          onSuccess: function(result) {
+            console.log("決済成功:", result);
+            alert("決済が成功しました！ トランザクショントークン: " + result.id);
+            // (ここにトランザクショントークンをサーバーに送信する処理などを追加できます)
+
+            // LIFFブラウザ内で実行されているか確認し、そうであればウィンドウを閉じる
+            if (liff.isInClient()) {
+              liff.closeWindow();
+            } else {
+              console.log("LINE内ブラウザではないため、LIFFウィンドウを閉じられません。");
+              // LINE内ブラウザでない場合のフォールバック処理 (例: 特定ページにリダイレクト)
+              // alert("決済成功！このウィンドウは手動で閉じてください。");
+            }
+          },
+          onError: function(error) {
+            console.error("決済エラー:", error);
+            let errorMessage = "決済に失敗しました。";
+            if (error && error.message) errorMessage += "\\nエラー: " + error.message;
+            if (error && error.details) errorMessage += "\\n詳細: " + JSON.stringify(error.details);
+            alert(errorMessage);
+          },
+          onClose: function() {
+            console.log("チェックアウトが閉じられました。");
+            // ユーザーが手動で決済モーダルを閉じた場合の処理
+            // ここで liff.closeWindow() を呼ぶと、決済せずにLIFFが閉じてしまうので注意
+          }
+        });
+
+        var button = document.querySelector("#univapay-payment-checkout");
+        button.onclick = function () {
+          checkout.open().catch(function(error) {
+              console.error("チェックアウトを開けませんでした:", error);
+              alert("チェックアウトモーダルを開けませんでした: " + (error.message || "不明なエラー"));
+          });
+        };
+      }
+
+      // ページ読み込み完了後に初期化処理を実行
+      window.onload = async function() {
+        await initializeLiff(); // LIFFの初期化を待つ
+        initializeUnivapayCheckout(); // 次にUnivaPayの初期化
+      };
+    </script>
+
+</body>
+</html>
