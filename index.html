@@ -55,7 +55,7 @@
         const statusMessageElement = document.getElementById('liff-status-message');
         try {
           // 注意: "YOUR_LIFF_ID_HERE" を実際のLIFF IDに置き換えてください。
-          await liff.init({ liffId: "YOUR_LIFF_ID_HERE" }); 
+          await liff.init({ liffId: "2007034467-z13l7loG" }); 
           statusMessageElement.textContent = 'LIFFの初期化が完了しました。';
           if (!liff.isInClient()) {
             statusMessageElement.textContent += ' (LINE内ブラウザではありません)';
@@ -79,12 +79,99 @@
           currency: "jpy",
           title: "おわら風の盆｜決済画面",
           header: "おわら風の盆｜決済画面",
-          description: "おわら風の盆の有料メニューを表示させるための決済（¥1）",
+          description: "おわら風の盆の有料メニューを表示させるための決済",
           onSuccess: function(result) {
             console.log("決済成功:", result);
             alert("決済が成功しました！ トランザクショントークン: " + result.id);
             // (ここにトランザクショントークンをサーバーに送信する処理などを追加できます)
+// (既存のLIFF初期化、UnivaPay初期化コードはそのまま)
 
+// グローバル変数などでLINEユーザーIDを保持できるようにする
+      let currentLineUserId = null;
+    
+    async function initializeLiff() {
+          const statusMessageElement = document.getElementById('liff-status-message');
+        try {
+            await liff.init({ liffId: "2007034467-z13l7loG" }); // ここは正しいLIFF IDに！
+            statusMessageElement.textContent = 'LIFFの初期化が完了しました。';
+            if (!liff.isInClient()) {
+                statusMessageElement.textContent += ' (LINE内ブラウザではありません)';
+            } else {
+                statusMessageElement.textContent += ' (LINE内ブラウザで実行中)';
+                // プロフィール情報を取得してLINEユーザーIDをセット
+                const profile = await liff.getProfile();
+                currentLineUserId = profile.userId;
+                console.log("LINE User ID:", currentLineUserId);
+                statusMessageElement.textContent += ` (User ID: ${currentLineUserId})`;
+            }
+        } catch (error) {
+            console.error('LIFF initialization failed:', error);
+            statusMessageElement.textContent = 'LIFFの初期化に失敗しました: ' + error.message;
+        }
+    }
+    
+    function initializeUnivapayCheckout() {
+        var checkout = UnivapayCheckout.create({
+            // ... (既存のUnivaPay設定はそのまま) ...
+            appId: "あなたのUnivaPayアプリID",
+            checkout: "payment",
+            amount: 100,
+            currency: "jpy",
+            title: "おわら風の盆｜決済画面",
+            header: "おわら風の盆｜決済画面",
+            description: "おわら風の盆の有料メニューを表示させるための決済",
+    
+            onSuccess: async function(result) { // onSuccessをasync関数に変更
+                console.log("決済成功:", result);
+                alert("決済が成功しました！ トランザクショントークン: " + result.id);
+    
+                if (!currentLineUserId) {
+                    alert("LINEユーザーIDが取得できませんでした。リッチメニューの変更は行えません。");
+                    // LINE公式アカウントへのリダイレクトは行うか、ここで処理を中断するかなどを決定
+                    if (liff.isInClient()) {
+                         // liff.closeWindow(); // またはOAへリダイレクト
+                         liff.openWindow({ url: "https://line.me/R/ti/p/@2006025152", external: false });
+                    }
+                    return;
+                }
+    
+                try {
+                    // バックエンドAPIにリクエストを送信
+                    const backendResponse = await fetch("あなたのAPI GatewayのエンドポイントURL", { // 例: https://sabefmw7dl.execute-api.ap-northeast-1.amazonaws.com/prod/StripeWebhookHandler
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                        },
+                        body: JSON.stringify({
+                            univapayTransactionToken: result.id, // UnivaPayのトランザクショントークン
+                            lineUserId: currentLineUserId // LINEユーザーID
+                        }),
+                    });
+    
+                    const backendResult = await backendResponse.json();
+    
+                    if (backendResponse.ok && backendResult.success) {
+                        alert("リッチメニューの更新をリクエストしました。");
+                    } else {
+                        alert("リッチメニューの更新リクエストに失敗しました。" + (backendResult.error ? "\\nエラー: " + backendResult.error : ""));
+                    }
+    
+                } catch (error) {
+                    console.error("バックエンドAPIへのリクエストエラー:", error);
+                    alert("リッチメニュー更新処理中にエラーが発生しました。");
+                }
+    
+                // 最終的にLINE公式アカウントのトーク画面にリダイレクト
+                if (liff.isInClient()) {
+                    // "@2006025152" は、@から始まる実際の公式アカウントIDに置き換えてください。
+                    // 例: @123abcde
+                    liff.openWindow({ url: "https://line.me/R/ti/p/@2006025152", external: false });
+                    // openWindowが現在のLIFFビューを置き換えるため、通常はこの後にliff.closeWindow()は不要です。
+                } else {
+                    console.log("LINE内ブラウザではないため、公式アカウントへは自動遷移しません。");
+                }
+            },
+        // ... (onError, onClose は既存のまま) ...
             // LIFFブラウザ内で実行されているか確認し、そうであればウィンドウを閉じる
             if (liff.isInClient()) {
               liff.closeWindow();
