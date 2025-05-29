@@ -1,215 +1,106 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>UnivaPay 決済ページ (LIFF)</title>
-    
-    <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
-    
-    <script src="https://widget.univapay.com/client/checkout.js"></script>
-    <style>
-        body {
-            font-family: sans-serif;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            padding: 20px;
-            text-align: center;
-        }
-        #payment-form button {
-            font-size: 1.5em;
-            padding: 15px 30px;
-            cursor: pointer;
-            background-color: #007bff;
-            color: white;
-            border: none;
-            border-radius: 5px;
-        }
-        #payment-form button:hover {
-            background-color: #0056b3;
-        }
-        .liff-status {
-            margin-bottom: 15px;
-            padding: 10px;
-            background-color: #f0f0f0;
-            border-radius: 3px;
-            font-size: 0.9em;
-        }
-    </style>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>おわら風の盆｜決済 (LIFF)</title>
+
+  <!-- LIFF v2 SDK -->
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+  <!-- UnivaPay Checkout Widget -->
+  <script src="https://widget.univapay.com/client/checkout.js"></script>
+
+  <style>
+    body{font-family:sans-serif;text-align:center;padding:20px}
+    #pay{font-size:1.4rem;padding:14px 32px;border:0;border-radius:6px;
+         background:#007bff;color:#fff;cursor:pointer}
+    #pay:disabled{opacity:.4;cursor:default}
+    .status{margin-bottom:1rem;padding:.5rem;background:#f0f0f0;border-radius:4px}
+  </style>
 </head>
 <body>
+  <div id="status" class="status">LIFFを初期化中...</div>
+  <button id="pay" disabled>おわら風の盆 有料メニュー (¥100)</button>
 
-    <div class="liff-status" id="liff-status-message">LIFFを初期化中...</div>
+  <script>
+    // ========= ① 固定値 =========
+    const LIFF_ID           = '2007034467-z13l7loG';       // TODO: 正しい LIFF ID
+    const UNIVAPAY_APP_ID   = 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJhcHBfdG9rZW4iLCJpYXQiOjE3NDg0OTQyMTEsIm1lcmNoYW50X2lkIjoiMTFmMDJlMTgtYzE1Ny0zOTk4LTk4NzgtY2I4N2ZlMzc3NjY4Iiwic3RvcmVfaWQiOiIxMWYwMmUxOC1lZjQ3LTQ5MWEtYWVjNy1iNzI4ZGQxNTM1NGMiLCJkb21haW5zIjpbImhhcnV0b2dvdG8uZ2l0aHViLmlvIl0sIm1vZGUiOiJ0ZXN0IiwiY3JlYXRvcl9pZCI6IjExZjAyZTE4LWMxNTctMzk5OC05ODc4LWNiODdmZTM3NzY2OCIsInZlcnNpb24iOjEsImp0aSI6IjExZjAzYzQ4LTY3NTktYjdhYi1hZjgwLWU3ZjdmZDU2ODQ1ZiJ9.virRF7QMEaez9Rof_vRcrGpb2CBtTDCD0vnlWpyGc_U';       // TODO: Checkout 用 JWT
+    const BACKEND_ENDPOINT  = 'https://sabefmw7dl.execute-api.ap-northeast-1.amazonaws.com/prod/UnivaPayWebhookHandler'; // TODO: API
 
-    <h1>おわら風の盆｜決済テスト (LIFF)</h1>
-    <p>このボタンをクリックすると、UnivaPayの決済モーダルが表示されます。</p>
+    // ========= ② 変数 =========
+    let lineUserId  = null;
+    let checkout    = null;
 
-    <form id="payment-form" onsubmit="return false;">
-      <button type="button" id="univapay-payment-checkout">おわら風の盆の有料メニュー決済 (¥1)</button>
-    </form>
+    // ========= ③ メイン =========
+    window.addEventListener('DOMContentLoaded', async () => {
+      const $status = document.getElementById('status');
+      const $pay    = document.getElementById('pay');
 
-    <script>
-      // LIFF初期化処理
-      async function initializeLiff() {
-        const statusMessageElement = document.getElementById('liff-status-message');
-        try {
-          // 注意: "YOUR_LIFF_ID_HERE" を実際のLIFF IDに置き換えてください。
-          await liff.init({ liffId: "2007034467-z13l7loG" }); 
-          statusMessageElement.textContent = 'LIFFの初期化が完了しました。';
-          if (!liff.isInClient()) {
-            statusMessageElement.textContent += ' (LINE内ブラウザではありません)';
-          } else {
-            statusMessageElement.textContent += ' (LINE内ブラウザで実行中)';
-          }
-        } catch (error) {
-          console.error('LIFF initialization failed:', error);
-          statusMessageElement.textContent = 'LIFFの初期化に失敗しました: ' + error.message;
-          // LIFFの初期化に失敗した場合でも決済ボタンは機能させるか、
-          // あるいはボタンを無効にするなどの処理をここに入れることもできます。
+      /* --- LIFF 初期化 --- */
+      try {
+        await liff.init({ liffId: LIFF_ID });
+        $status.textContent = 'LIFF 初期化 OK';
+
+        if (liff.isInClient()) {
+          const profile = await liff.getProfile();
+          lineUserId    = profile.userId;
+          $status.textContent += ` (User: ${lineUserId})`;
+        } else {
+          $status.textContent += ' (LINE 外ブラウザ)';
         }
+
+      } catch (err) {
+        console.error('LIFF init error', err);
+        $status.textContent = 'LIFF 初期化失敗: ' + err.message;
+        return; // ここで中止
       }
 
-      // Univapay Checkout 初期化処理
-      function initializeUnivapayCheckout() {
-        var checkout = UnivapayCheckout.create({
-          appId: "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJhcHBfdG9rZW4iLCJpYXQiOjE3NDg0OTQyMTEsIm1lcmNoYW50X2lkIjoiMTFmMDJlMTgtYzE1Ny0zOTk4LTk4NzgtY2I4N2ZlMzc3NjY4Iiwic3RvcmVfaWQiOiIxMWYwMmUxOC1lZjQ3LTQ5MWEtYWVjNy1iNzI4ZGQxNTM1NGMiLCJkb21haW5zIjpbImhhcnV0b2dvdG8uZ2l0aHViLmlvIl0sIm1vZGUiOiJ0ZXN0IiwiY3JlYXRvcl9pZCI6IjExZjAyZTE4LWMxNTctMzk5OC05ODc4LWNiODdmZTM3NzY2OCIsInZlcnNpb24iOjEsImp0aSI6IjExZjAzYzQ4LTY3NTktYjdhYi1hZjgwLWU3ZjdmZDU2ODQ1ZiJ9.virRF7QMEaez9Rof_vRcrGpb2CBtTDCD0vnlWpyGc_U", // あなたのApp ID
-          checkout: "payment",
-          amount: 1,
-          currency: "jpy",
-          title: "おわら風の盆｜決済画面",
-          header: "おわら風の盆｜決済画面",
-          description: "おわら風の盆の有料メニューを表示させるための決済",
-          onSuccess: function(result) {
-            console.log("決済成功:", result);
-            alert("決済が成功しました！ トランザクショントークン: " + result.id);
-            // (ここにトランザクショントークンをサーバーに送信する処理などを追加できます)
-// (既存のLIFF初期化、UnivaPay初期化コードはそのまま)
+      /* --- UnivaPay Checkout 準備 --- */
+      checkout = UnivapayCheckout.create({
+        appId      : UNIVAPAY_APP_ID,
+        checkout   : 'payment',
+        amount     : 100,               // ¥100
+        currency   : 'jpy',
+        title      : 'おわら風の盆｜決済',
+        header     : 'おわら風の盆｜決済',
+        description: '有料メニュー表示のための課金',
+        metadata   : { line_user_id: lineUserId }, // ← Webhook 用
+        onSuccess  : handlePaid,
+        onError    : e => alert('決済失敗: ' + e.message),
+      });
 
-// グローバル変数などでLINEユーザーIDを保持できるようにする
-      let currentLineUserId = null;
-    
-    async function initializeLiff() {
-          const statusMessageElement = document.getElementById('liff-status-message');
-        try {
-            await liff.init({ liffId: "2007034467-z13l7loG" }); // ここは正しいLIFF IDに！
-            statusMessageElement.textContent = 'LIFFの初期化が完了しました。';
-            if (!liff.isInClient()) {
-                statusMessageElement.textContent += ' (LINE内ブラウザではありません)';
-            } else {
-                statusMessageElement.textContent += ' (LINE内ブラウザで実行中)';
-                // プロフィール情報を取得してLINEユーザーIDをセット
-                const profile = await liff.getProfile();
-                currentLineUserId = profile.userId;
-                console.log("LINE User ID:", currentLineUserId);
-                statusMessageElement.textContent += ` (User ID: ${currentLineUserId})`;
-            }
-        } catch (error) {
-            console.error('LIFF initialization failed:', error);
-            statusMessageElement.textContent = 'LIFFの初期化に失敗しました: ' + error.message;
-        }
-    }
-    
-    function initializeUnivapayCheckout() {
-        var checkout = UnivapayCheckout.create({
-            // ... (既存のUnivaPay設定はそのまま) ...
-            appId: "あなたのUnivaPayアプリID",
-            checkout: "payment",
-            amount: 100,
-            currency: "jpy",
-            title: "おわら風の盆｜決済画面",
-            header: "おわら風の盆｜決済画面",
-            description: "おわら風の盆の有料メニューを表示させるための決済",
-    
-            onSuccess: async function(result) { // onSuccessをasync関数に変更
-                console.log("決済成功:", result);
-                alert("決済が成功しました！ トランザクショントークン: " + result.id);
-    
-                if (!currentLineUserId) {
-                    alert("LINEユーザーIDが取得できませんでした。リッチメニューの変更は行えません。");
-                    // LINE公式アカウントへのリダイレクトは行うか、ここで処理を中断するかなどを決定
-                    if (liff.isInClient()) {
-                         // liff.closeWindow(); // またはOAへリダイレクト
-                         liff.openWindow({ url: "https://line.me/R/ti/p/@2006025152", external: false });
-                    }
-                    return;
-                }
-    
-                try {
-                    // バックエンドAPIにリクエストを送信
-                    const backendResponse = await fetch("https://sabefmw7dl.execute-api.ap-northeast-1.amazonaws.com/prod/UnivaPayWebhookHandler", { // 例: https://sabefmw7dl.execute-api.ap-northeast-1.amazonaws.com/prod/StripeWebhookHandler
-                        method: "POST",
-                        headers: {
-                            "Content-Type": "application/json",
-                        },
-                        body: JSON.stringify({
-                            univapayTransactionToken: result.id, // UnivaPayのトランザクショントークン
-                            lineUserId: currentLineUserId // LINEユーザーID
-                        }),
-                    });
-    
-                    const backendResult = await backendResponse.json();
-    
-                    if (backendResponse.ok && backendResult.success) {
-                        alert("リッチメニューの更新をリクエストしました。");
-                    } else {
-                        alert("リッチメニューの更新リクエストに失敗しました。" + (backendResult.error ? "\\nエラー: " + backendResult.error : ""));
-                    }
-    
-                } catch (error) {
-                    console.error("バックエンドAPIへのリクエストエラー:", error);
-                    alert("リッチメニュー更新処理中にエラーが発生しました。");
-                }
-    
-                // 最終的にLINE公式アカウントのトーク画面にリダイレクト
-                if (liff.isInClient()) {
-                    // "@2006025152" は、@から始まる実際の公式アカウントIDに置き換えてください。
-                    // 例: @123abcde
-                    liff.openWindow({ url: "https://line.me/R/ti/p/@2006025152", external: false });
-                    // openWindowが現在のLIFFビューを置き換えるため、通常はこの後にliff.closeWindow()は不要です。
-                } else {
-                    console.log("LINE内ブラウザではないため、公式アカウントへは自動遷移しません。");
-                }
-            },
-        // ... (onError, onClose は既存のまま) ...
-            // LIFFブラウザ内で実行されているか確認し、そうであればウィンドウを閉じる
-            if (liff.isInClient()) {
-              liff.closeWindow();
-            } else {
-              console.log("LINE内ブラウザではないため、LIFFウィンドウを閉じられません。");
-              // LINE内ブラウザでない場合のフォールバック処理 (例: 特定ページにリダイレクト)
-              // alert("決済成功！このウィンドウは手動で閉じてください。");
-            }
-          },
-          onError: function(error) {
-            console.error("決済エラー:", error);
-            let errorMessage = "決済に失敗しました。";
-            if (error && error.message) errorMessage += "\\nエラー: " + error.message;
-            if (error && error.details) errorMessage += "\\n詳細: " + JSON.stringify(error.details);
-            alert(errorMessage);
-          },
-          onClose: function() {
-            console.log("チェックアウトが閉じられました。");
-            // ユーザーが手動で決済モーダルを閉じた場合の処理
-            // ここで liff.closeWindow() を呼ぶと、決済せずにLIFFが閉じてしまうので注意
-          }
+      /* --- ボタン有効化 & イベント割当 --- */
+      $pay.disabled = false;
+      $pay.addEventListener('click', () => checkout.open().catch(e=>{
+        console.error('checkout.open エラー', e);
+        alert('決済画面を開けませんでした');
+      }));
+    });
+
+    // ========= ④ 決済成功コールバック =========
+    async function handlePaid(result) {
+      console.log('paid', result);
+
+      try {
+        const res = await fetch(BACKEND_ENDPOINT, {
+          method : 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body   : JSON.stringify({
+            transactionToken: result.id,
+            lineUserId
+          })
         });
-
-        var button = document.querySelector("#univapay-payment-checkout");
-        button.onclick = function () {
-          checkout.open().catch(function(error) {
-              console.error("チェックアウトを開けませんでした:", error);
-              alert("チェックアウトモーダルを開けませんでした: " + (error.message || "不明なエラー"));
-          });
-        };
+        const js = await res.json();
+        console.log('backend:', js);
+      } catch (e) {
+        console.error('backend error', e);
       }
 
-      // ページ読み込み完了後に初期化処理を実行
-      window.onload = async function() {
-        await initializeLiff(); // LIFFの初期化を待つ
-        initializeUnivapayCheckout(); // 次にUnivaPayの初期化
-      };
-    </script>
-
+      // LINE アプリに戻す
+      if (liff.isInClient()) liff.closeWindow();
+      else alert('決済成功！ブラウザを閉じてください。');
+    }
+  </script>
 </body>
 </html>
