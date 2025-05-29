@@ -92,6 +92,7 @@
           })
         });
         const js = await res.json();
+        console.log(res.status);
         console.log('backend:', js);
       } catch (e) {
         console.error('backend error', e);
@@ -100,6 +101,7 @@
       // LINE アプリに戻す
       if (liff.isInClient()) liff.closeWindow();
       else alert('決済成功！ブラウザを閉じてください。');
+      console.log('isInClient', liff.isInClient());
     }
   </script>
 </body>
