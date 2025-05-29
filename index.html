@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>おわら風の盆｜決済</title>
+
+    <!-- UnivaPay Widget -->
+    <script src="https://widget.univapay.com/client/checkout.js"></script>
+  </head>
+  <body class="flex flex-col items-center justify-center h-screen gap-4">
+    <h1 style="font-size:1.5rem">おわら風の盆<br>便利メニュー決済&nbsp;¥100</h1>
+
+    <!-- ボタンを1行で生成する簡易版 -->
+    <span
+      data-app-id="eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJhcHBfdG9rZW4iLCJpYXQiOjE3NDgzOTU3MDcsIm1lcmNoYW50X2lkIjoiMTFmMDJlMTgtYzE1Ny0zOTk4LTk4NzgtY2I4N2ZlMzc3NjY4Iiwic3RvcmVfaWQiOiIxMWYwMmUxOC1lZjQ3LTQ5MWEtYWVjNy1iNzI4ZGQxNTM1NGMiLCJkb21haW5zIjpbXSwibW9kZSI6InRlc3QiLCJjcmVhdG9yX2lkIjoiMTFmMDJlMTgtYzE1Ny0zOTk4LTk4NzgtY2I4N2ZlMzc3NjY4IiwidmVyc2lvbiI6MSwianRpIjoiMTFmMDNiNjMtMGUwOS0wYjVmLWJkZDktNDEyZjE2NWZiNjliIn0.DZ2IYoqwRbEKIUf-bL_GCEqAU1G-sftlo7Pkpe0UxB4"
+      data-checkout="payment"
+      data-amount="100"
+      data-currency="jpy"
+      data-size="large"
+      data-title="おわら風の盆｜決済"
+      data-header="おわら風の盆｜決済"
+      data-description="便利メニューを解放するための決済（¥100）"
+      data-cvv-authorize="true"
+      data-submit-button-text="決済"
+    ></span>
+
+    <!-- 完了メッセージ -->
+    <p>決済が完了すると画面が自動で閉じます。</p>
+
+    <script>
+      // Widget のイベントをフックして LIFF を閉じる
+      window.UnivapayCheckoutReady = function (checkout) {
+        checkout.on('payment.success', function () {
+          if (window.liff) liff.closeWindow();
+        });
+      };
+    </script>
+  </body>
+</html>
