@@ -1,140 +1,34 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>UnivaPay 決済ページ</title>
-    <script src="https://widget.univapay.com/client/checkout.js"></script>
-    <style>
-        body {
-            font-family: sans-serif;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            padding: 20px;
-            text-align: center;
-        }
-        #payment-form button {
-            font-size: 1.5em; /* ボタンの文字サイズを調整 */
-            padding: 15px 30px;
-            cursor: pointer;
-            background-color: #007bff;
-            color: white;
-            border: none;
-            border-radius: 5px;
-        }
-        #payment-form button:hover {
-            background-color: #0056b3;
-        }
-        .info {
-            margin-top: 30px;
-            padding: 15px;
-            background-color: #f0f0f0;
-            border-radius: 5px;
-            text-align: left;
-            max-width: 600px;
-        }
-        pre {
-            background-color: #e0e0e0;
-            padding: 10px;
-            border-radius: 3px;
-            white-space: pre-wrap; /* 折り返し表示 */
-            word-wrap: break-word; /* 長い文字列も折り返す */
-        }
-    </style>
-</head>
-<body>
+  <meta charset="utf-8">
+  <title>決済ページ</title>
+  <script src="https://widget.univapay.com/client/checkout.js"></script>
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+</head><body style="display:flex;justify-content:center;align-items:center;height:100vh">
 
-    <h1>おわら風の盆｜決済テスト</h1>
-    <p>このボタンをクリックすると、UnivaPayの決済モーダルが表示されます。</p>
+<button id="payBtn" style="font-size:1.2rem;padding:1em 2em">便利メニュー ¥100</button>
 
-    <form id="payment-form" onsubmit="return false;"> {/* フォームのデフォルト送信を抑制 */}
-      <button type="button" id="univapay-payment-checkout">おわら風の盆の有料メニュー決済 (¥1)</button>
-    </form>
+<script>
+(async () => {
+  // ① LIFF 初期化
+  await liff.init({ liffId: "YOUR_LIFF_ID" });        // ← 差し替え
+  const profile   = await liff.getProfile();
+  const userId    = profile.userId;                  // ← LINE USER ID
 
-    <script>
-      // UnivapayCheckoutを初期化
-      var checkout = UnivapayCheckout.create({
-        // あなたのアプリトークンID (提供されたものを使用)
-        appId: "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJhcHBfdG9rZW4iLCJpYXQiOjE3NDg0OTQyMTEsIm1lcmNoYW50X2lkIjoiMTFmMDJlMTgtYzE1Ny0zOTk4LTk4NzgtY2I4N2ZlMzc3NjY4Iiwic3RvcmVfaWQiOiIxMWYwMmUxOC1lZjQ3LTQ5MWEtYWVjNy1iNzI4ZGQxNTM1NGMiLCJkb21haW5zIjpbImhhcnV0b2dvdG8uZ2l0aHViLmlvIl0sIm1vZGUiOiJ0ZXN0IiwiY3JlYXRvcl9pZCI6IjExZjAyZTE4LWMxNTctMzk5OC05ODc4LWNiODdmZTM3NzY2OCIsInZlcnNpb24iOjEsImp0aSI6IjExZjAzYzQ4LTY3NTktYjdhYi1hZjgwLWU3ZjdmZDU2ODQ1ZiJ9.virRF7QMEaez9Rof_vRcrGpb2CBtTDCD0vnlWpyGc_U",
-        checkout: "payment", // 決済タイプ
-        amount: 100,           // 金額 (日本円)
-        currency: "jpy",     // 通貨
-        title: "おわら風の盆｜決済画面", // モーダルのタイトル
-        header: "おわら風の盆｜決済画面", // モーダルのヘッダー
-        description: "おわら風の盆の有料メニューを表示させるための決済（¥100）", // 説明
-        // cvvAuthorize: true, // CVV認証を要求するかどうか (paymentタイプでは通常デフォルトでtrue)
-        // submitButtonText: "決済", // モーダル内の送信ボタンのテキスト (デフォルトで適切に表示されます)
+  // ② ウィジェット生成
+  const checkout = UnivapayCheckout.create({
+    appId: "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJhcHBfdG9rZW4iLCJpYXQiOjE3NDg0OTQyMTEsIm1lcmNoYW50X2lkIjoiMTFmMDJlMTgtYzE1Ny0zOTk4LTk4NzgtY2I4N2ZlMzc3NjY4Iiwic3RvcmVfaWQiOiIxMWYwMmUxOC1lZjQ3LTQ5MWEtYWVjNy1iNzI4ZGQxNTM1NGMiLCJkb21haW5zIjpbImhhcnV0b2dvdG8uZ2l0aHViLmlvIl0sIm1vZGUiOiJ0ZXN0IiwiY3JlYXRvcl9pZCI6IjExZjAyZTE4LWMxNTctMzk5OC05ODc4LWNiODdmZTM3NzY2OCIsInZlcnNpb24iOjEsImp0aSI6IjExZjAzYzQ4LTY3NTktYjdhYi1hZjgwLWU3ZjdmZDU2ODQ1ZiJ9.virRF7QMEaez9Rof_vRcrGpb2CBtTDCD0vnlWpyGc_U",                       // ← ドメイン入り JWT
+    checkout: "payment",
+    amount: 100,
+    currency: "JPY",
+    title: "おわら風の盆｜決済",
+    header:"おわら風の盆｜決済",
+    description:"便利メニュー解放 ¥100",
+    autoClose:true,
+    metadata:{ line_user_id: userId }                // ★ 重要
+  });
 
-        // 決済成功時のコールバック関数
-        onSuccess: function(result) {
-          console.log("決済成功:", result);
-          alert("決済が成功しました！ トランザクショントークン: " + result.id + "\\nこのトークンをサーバーに送信して実際の決済処理を行います。");
-          // 通常、ここで result.id (トランザクショントークン) をバックエンドサーバーに送信し、
-          // サーバーサイドで実際の課金処理 (Charge APIの呼び出し) を行います。
-        },
-        // 決済失敗時のコールバック関数
-        onError: function(error) {
-          console.error("決済エラー:", error);
-          let errorMessage = "決済に失敗しました。";
-          if (error && error.message) {
-            errorMessage += "\\nエラー: " + error.message;
-          }
-          if (error && error.details) {
-            errorMessage += "\\n詳細: " + JSON.stringify(error.details);
-          }
-          alert(errorMessage);
-        },
-        // チェックアウトモーダルが閉じられた時のコールバック関数
-        onClose: function() {
-          console.log("チェックアウトが閉じられました。");
-        }
-      });
-
-      // HTML内のボタン要素を取得
-      var button = document.querySelector("#univapay-payment-checkout");
-
-      // ボタンにクリックイベントリスナーを追加
-      button.onclick = function () {
-        checkout.open().catch(function(error) {
-            // checkout.open()自体が失敗した場合 (例: 設定不備など)
-            console.error("チェックアウトを開けませんでした:", error);
-            alert("チェックアウトモーダルを開けませんでした: " + (error.message || "不明なエラー"));
-        });
-      };
-    </script>
-
-    <div class="info">
-        <h3>ご参考：もう一方の埋め込み方法（data属性を利用したspanタグ）</h3>
-        <p>
-            以下の方法は、HTMLに`span`タグを記述するだけでUnivaPayのボタンを設置できます。
-            上記のJavaScriptによるボタン制御と機能が重複するため、通常はどちらか一方の方法を選択します。
-            この`span`タグの方法では、決済後のコールバック処理などをJavaScriptで細かく制御することは難しくなります。
-        </p>
-        <pre>
-&lt;!-- UnivaPay Checkout スクリプト (既にページ上部で読み込み済み) --&gt;
-&lt;!-- &lt;script src="https://widget.univapay.com/client/checkout.js"&gt;&lt;/script&gt; --&gt;
-
-&lt;span
-    data-app-id="ここにあなたのアプリトークンID"
-    data-checkout="payment"
-    data-amount="1"
-    data-currency="jpy"
-    data-size="large"
-    data-title="おわら風の盆｜決済画面"
-    data-header="おわら風の盆｜決済画面"
-    data-description="おわら風の盆の有料メニューを表示させるための決済（¥1）"
-    data-cvv-authorize="true"
-    data-submit-button-text="決済"&gt;
-&lt;/span&gt;
-        </pre>
-        <p>
-            ※ 上記の `data-app-id` は、ご自身の実際のアプリトークンIDに置き換えてください。
-            また、この方法で表示されるボタンの文言は `data-submit-button-text` で設定したものが直接ボタン名になるのではなく、
-            UnivaPayの標準ボタンが表示され、その上に `data-description` などが表示される形になります。
-            (ご提示のコードでは`data-submit-button-text`が設定されていましたが、`span`で表示されるボタン自体のテキストは通常Univapay側で標準化されています)
-        </p>
-    </div>
-
-</body>
-</html>
+  document.getElementById('payBtn').onclick = () => checkout.open();
+})();
+</script></body></html>
