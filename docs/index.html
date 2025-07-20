@@ -105,16 +105,16 @@ window.addEventListener('DOMContentLoaded', async () => {
     }
 
     /** 3) カスタムアクションボタン (Close) **/
-    if(liff.isApiAvailable('ui')){
-      liff.ready(() => {
+    liff.ready(() => {
+      if (liff.ui) {               // miniアプリ環境だけ true
         liff.ui.setActionButton({
           text   : '閉じる',
           type   : 'close',
           color  : '#ffffff',
           bgColor: '#007bff'
         });
-      });
-    }
+      }
+    });
 
     /** 4) UnivaPay Checkout 準備 **/
     checkout = UnivapayCheckout.create({
