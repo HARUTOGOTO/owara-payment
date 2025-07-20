@@ -1,108 +1,166 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>おわら風の盆｜決済 (LIFF)</title>
+  <meta charset="utf-8">
+  <!-- ノッチ端末のセーフエリアを有効にする -->
+  <meta name="viewport"
+        content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <title>おわら風の盆｜有料メニュー決済 (LIFF)</title>
 
-  <!-- LIFF v2 SDK -->
+  <!-- ❶ LIFF SDK -->
   <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
-  <!-- UnivaPay Checkout Widget -->
+  <!-- ❷ UnivaPay Checkout Widget -->
   <script src="https://widget.univapay.com/client/checkout.js"></script>
 
   <style>
-    body{font-family:sans-serif;text-align:center;padding:20px}
-    #pay{font-size:1.4rem;padding:14px 32px;border:0;border-radius:6px;
-         background:#007bff;color:#fff;cursor:pointer}
-    #pay:disabled{opacity:.4;cursor:default}
-    .status{margin-bottom:1rem;padding:.5rem;background:#f0f0f0;border-radius:4px}
-    /* --- 追加: 法定表記リンク用スタイル --- */
-    .legal{margin-top:2rem;font-size:.9rem}
-    .legal a{color:#007bff;text-decoration:none}
-    .legal a:hover{text-decoration:underline}
+  /** 画面共通 **/
+  :root{
+    --accent:#007bff;
+    --safe-top:env(safe-area-inset-top);
+    --safe-left:env(safe-area-inset-left);
+    --safe-right:env(safe-area-inset-right);
+  }
+  html,body{
+    height:100%;margin:0;
+    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+    background:#fafafa;
+    padding:var(--safe-top) var(--safe-right) 0 var(--safe-left);
+    display:flex;flex-direction:column;align-items:center;justify-content:flex-start;
+  }
+  h1{font-size:1.2rem;margin:1.5rem 0 .5rem}
+  button{
+    font-size:1rem;line-height:1.2;
+    padding:14px 32px;border:none;border-radius:6px;
+    background:var(--accent);color:#fff;cursor:pointer;
+  }
+  button:disabled{opacity:.4;cursor:default}
+  .legal{margin-top:2rem;font-size:.85rem}
+  .legal a{color:var(--accent);text-decoration:none}
+  .legal a:hover{text-decoration:underline}
+
+  /** 読み込みスピナー **/
+  #loader{
+    width:56px;height:56px;margin:40px auto;
+    border:6px solid #d0d0d0;border-top-color:var(--accent);
+    border-radius:50%;animation:spin 1s linear infinite;
+  }
+  @keyframes spin{to{transform:rotate(360deg)}}
+
+  /** ステータス表示 **/
+  #status{
+    background:#f0f0f0;padding:.6rem .9rem;border-radius:6px;
+    font-size:.9rem;margin-top:1rem
+  }
   </style>
 </head>
-<body>
-  <div id="status" class="status">LIFFを初期化中...</div>
-  <button id="pay" disabled>おわら風の盆 有料メニュー (¥100)</button>
 
-  <!-- 追加: 特定商取引法リンク -->
-  <div class="legal">
-    <a href="https://banca.wraptas.site/20eb9060750d8010b323c3c7408f09d4" target="_blank" rel="noopener noreferrer">
+<body>
+  <!-- ❸ 読み込みスピナー -->
+  <div id="loader"></div>
+
+  <!-- ❹ 初期化後に表示する要素 -->
+  <h1 id="title" style="display:none">おわら風の盆 有料メニュー (¥100)</h1>
+  <button id="pay" style="display:none" disabled>決済する</button>
+  <div id="status" style="display:none">LIFF 初期化中…</div>
+
+  <!-- 特商法リンク -->
+  <div class="legal" style="display:none" id="legal">
+    <a href="https://example.com/law" target="_blank" rel="noopener noreferrer">
       特定商取引法に基づく表記
     </a>
   </div>
 
 <script>
-/* ========= ① 固定値 ========= */
-const LIFF_ID         = '2007034467-z13l7loG';              // TODO: あなたの LIFF ID
-const UNIVAPAY_APP_ID = 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJhcHBfdG9rZW4iLCJpYXQiOjE3NTIwNDM1NzEsIm1lcmNoYW50X2lkIjoiMTFmMDJlMTgtYzE1Ny0zOTk4LTk4NzgtY2I4N2ZlMzc3NjY4Iiwic3RvcmVfaWQiOiIxMWYwMmUxOC1lZjQ3LTQ5MWEtYWVjNy1iNzI4ZGQxNTM1NGMiLCJkb21haW5zIjpbInBheS5vd2FyYS1rYXplLW5vLWJvbi5jb20iXSwibW9kZSI6InRlc3QiLCJjcmVhdG9yX2lkIjoiMTFmMDJlMTgtYzE1Ny0zOTk4LTk4NzgtY2I4N2ZlMzc3NjY4IiwidmVyc2lvbiI6MSwianRpIjoiMTFmMDVjOTAtNjZjNy0yYjJjLTk5ZmEtZTc4NmZhNDJiMGY5In0.pa9mbNnnszQpEX6prReqmd1g3jAHwQ-ZnnLCnmiYN0U';                // TODO: Checkout 用 JWT
-const BACKEND_ENDPOINT= 'https://am0oglm2aj.execute-api.ap-northeast-1.amazonaws.com/prod/pay-success'; // TODO: 新ルート
+/* ========== 固定値 ========== */
+const LIFF_ID          = 'YOUR_LIFF_ID';
+const UNIVAPAY_APP_ID  = 'YOUR_UNIVAPAY_JWT';
+const BACKEND_ENDPOINT = 'https://your-api.example.com/prod/pay-success';
 
-/* ========= ② 変数 ========= */
-let lineUserId=null;
-let checkout   =null;
+/* ========== 状態変数 ========== */
+let lineUserId = null;
+let checkout   = null;
 
-/* ========= ③ メイン ========= */
-window.addEventListener('DOMContentLoaded',async()=>{
-  const $status=document.getElementById('status');
-  const $pay   =document.getElementById('pay');
+/* ========== ユーティリティ ========== */
+function $ (id){ return document.getElementById(id); }
 
-  /* --- LIFF 初期化 --- */
+/* ========== メイン ========== */
+window.addEventListener('DOMContentLoaded', async () => {
   try{
-    await liff.init({liffId:LIFF_ID});
-    $status.textContent='LIFF 初期化 OK';
+    /** 1) LIFF 初期化 **/
+    await liff.init({ liffId: LIFF_ID });
+
+    /** 2) UI 切り替え & フレンドシップ判定 **/
+    $('loader').style.display='none';
+    $('title').style.display='block';
+    $('pay').style.display  ='inline-block';
+    $('status').style.display='block';
+    $('legal').style.display='block';
+
     if(liff.isInClient()){
-      const p=await liff.getProfile();
-      lineUserId=p.userId;
-      $status.textContent+=` (User: ${lineUserId})`;
+      const profile = await liff.getProfile();
+      lineUserId    = profile.userId;
+      $('status').textContent = 'LIFF 初期化 OK (User: '+lineUserId+')';
     }else{
-      $status.textContent+=' (LINE 外ブラウザ)';
+      $('status').textContent = 'LIFF 初期化 OK (LINE 外ブラウザ)';
     }
-  }catch(err){
-    console.error('LIFF init error',err);
-    $status.textContent='LIFF 初期化失敗: '+err.message;
-    return;
+
+    /** 3) カスタムアクションボタン (Close) **/
+    if(liff.isApiAvailable('ui')){
+      liff.ready(() => {
+        liff.ui.setActionButton({
+          text   : '閉じる',
+          type   : 'close',
+          color  : '#ffffff',
+          bgColor: '#007bff'
+        });
+      });
+    }
+
+    /** 4) UnivaPay Checkout 準備 **/
+    checkout = UnivapayCheckout.create({
+      appId       : UNIVAPAY_APP_ID,
+      checkout    : 'payment',
+      amount      : 100,
+      currency    : 'jpy',
+      title       : 'おわら風の盆｜決済',
+      header      : 'おわら風の盆｜決済',
+      description : '有料メニュー表示のための課金',
+      paymentMethods: ['card','pay_pay_online'],
+      metadata    : { line_user_id: lineUserId },
+      onSuccess   : handlePaid,
+      onError     : e => alert('決済失敗: '+e.message)
+    });
+
+    $('pay').disabled=false;
+    $('pay').onclick = () => checkout.open().catch(e=>{
+      console.error('checkout.open エラー',e);
+      alert('決済画面を開けませんでした');
+    });
+
+  }catch(e){
+    console.error('LIFF init error',e);
+    $('status').style.display='block';
+    $('status').textContent = 'LIFF 初期化失敗: '+e.message;
   }
-
-  /* --- UnivaPay Checkout 準備 --- */
-  checkout=UnivapayCheckout.create({
-    appId      :UNIVAPAY_APP_ID,
-    checkout   :'payment',
-    amount     :100,
-    currency   :'jpy',
-    title      :'おわら風の盆｜決済',
-    header     :'おわら風の盆｜決済',
-    description:'有料メニュー表示のための課金',
-    paymentMethods: ['card', 'pay_pay_online'],
-    metadata   :{line_user_id:lineUserId},
-    onSuccess  :handlePaid,
-    onError    :e=>alert('決済失敗: '+e.message)
-  });
-
-  /* --- ボタンを有効化 --- */
-  $pay.disabled=false;
-  $pay.addEventListener('click',()=>checkout.open().catch(e=>{
-    console.error('checkout.open エラー',e);
-    alert('決済画面を開けませんでした');
-  }));
 });
 
-/* ========= ④ 決済成功コールバック ========= */
-async function handlePaid(res){
-  console.log('paid',res);
+/* ========== 決済成功後コールバック ========== */
+async function handlePaid(result){
+  console.log('paid', result);
+
   try{
-    const r=await fetch(BACKEND_ENDPOINT,{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({
-        transactionToken:res.id,
+    const r = await fetch(BACKEND_ENDPOINT, {
+      method : 'POST',
+      headers: { 'Content-Type':'application/json' },
+      body   : JSON.stringify({
+        transactionToken: result.id,
         lineUserId
       })
     });
-    console.log('backend status',r.status);
-  }catch(e){
-    console.error('backend error',e);
+    console.log('backend status', r.status);
+  }catch(err){
+    console.error('backend error', err);
+    alert('サーバー連携に失敗しました');
   }finally{
     if(liff.isInClient()) liff.closeWindow();
     else alert('決済成功！ブラウザを閉じてください。');
