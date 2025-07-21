@@ -7,26 +7,34 @@
         content="width=device-width,initial-scale=1,viewport-fit=cover">
   <title>おわら風の盆｜有料メニュー決済 (LIFF)</title>
 
-  <!-- ❶ LIFF SDK -->
-  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
-  <!-- ❷ UnivaPay Checkout Widget -->
-  <script src="https://widget.univapay.com/client/checkout.js"></script>
+  <!-- ✅ LIFF SDK（defer で初期描画をブロックしない） -->
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js" defer></script>
+  <!-- ✅ UnivaPay Widget -->
+  <script src="https://widget.univapay.com/client/checkout.js" defer></script>
 
   <style>
-  /** 画面共通 **/
+  /** 画面共通 ******************************************/
   :root{
     --accent:#007bff;
-    --safe-top:env(safe-area-inset-top);
-    --safe-left:env(safe-area-inset-left);
-    --safe-right:env(safe-area-inset-right);
+
+    /* Safe-area (縦) */
+    --safe-top   : env(safe-area-inset-top);
+    --safe-right : env(safe-area-inset-right);
+    --safe-bottom: env(safe-area-inset-bottom);
+    --safe-left  : env(safe-area-inset-left);
   }
   html,body{
     height:100%;margin:0;
     font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
     background:#fafafa;
-    padding:var(--safe-top) var(--safe-right) 0 var(--safe-left);
+    padding:var(--safe-top) var(--safe-right) var(--safe-bottom) var(--safe-left);
     display:flex;flex-direction:column;align-items:center;justify-content:flex-start;
   }
+  /* Landscape：LINE ガイドライン 44px + 21px */
+  @media (orientation:landscape){
+    html,body{padding:0 44px 21px;}
+  }
+
   h1{font-size:1.2rem;margin:1.5rem 0 .5rem}
   button{
     font-size:1rem;line-height:1.2;
@@ -34,19 +42,19 @@
     background:var(--accent);color:#fff;cursor:pointer;
   }
   button:disabled{opacity:.4;cursor:default}
+
   .legal{margin-top:2rem;font-size:.85rem}
   .legal a{color:var(--accent);text-decoration:none}
   .legal a:hover{text-decoration:underline}
 
-  /** 読み込みスピナー **/
-  #loader{
-    width:56px;height:56px;margin:40px auto;
-    border:6px solid #d0d0d0;border-top-color:var(--accent);
-    border-radius:50%;animation:spin 1s linear infinite;
+  /** 公式ローディングアイコン（30 × 30px 推奨） ********/
+  .loader{
+    width:30px;height:30px;margin:40px auto;
+    animation:spin 1s linear infinite;
   }
   @keyframes spin{to{transform:rotate(360deg)}}
 
-  /** ステータス表示 **/
+  /** ステータス表示 *************************************/
   #status{
     background:#f0f0f0;padding:.6rem .9rem;border-radius:6px;
     font-size:.9rem;margin-top:1rem
@@ -55,22 +63,23 @@
 </head>
 
 <body>
-  <!-- ❸ 読み込みスピナー -->
-  <div id="loader"></div>
+  <!-- ✅ 公式ローディングアイコン SVG -->
+  <img src="./LINE_spinner_light.svg" alt="loading" class="loader" id="loader">
 
-  <!-- ❹ 初期化後に表示する要素 -->
+  <!-- 初期化後に表示する要素 -->
   <h1 id="title" style="display:none">おわら風の盆 有料メニュー (¥100)</h1>
   <button id="pay" style="display:none" disabled>決済する</button>
   <div id="status" style="display:none">LIFF 初期化中…</div>
 
-  <!-- 特商法リンク -->
+  <!-- 必須リンク 3 点 -->
   <div class="legal" style="display:none" id="legal">
-    <a href="https://example.com/law" target="_blank" rel="noopener noreferrer">
-      特定商取引法に基づく表記
-    </a>
+    <a href="https://example.com/law"  target="_blank" rel="noopener noreferrer">特定商取引法に基づく表記</a> /
+    <a href="https://example.com/terms" target="_blank" rel="noopener noreferrer">利用規約</a> /
+    <a href="https://example.com/privacy" target="_blank" rel="noopener noreferrer">プライバシーポリシー</a>
   </div>
 
-<script>
+<!-- =========================== ここから JS =========================== -->
+<script defer>
 /* ========== 固定値 ========== */
 const LIFF_ID          = '2007034467-z13l7loG';
 const UNIVAPAY_APP_ID  = 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJhcHBfdG9rZW4iLCJpYXQiOjE3NTIwNDM1NzEsIm1lcmNoYW50X2lkIjoiMTFmMDJlMTgtYzE1Ny0zOTk4LTk4NzgtY2I4N2ZlMzc3NjY4Iiwic3RvcmVfaWQiOiIxMWYwMmUxOC1lZjQ3LTQ5MWEtYWVjNy1iNzI4ZGQxNTM1NGMiLCJkb21haW5zIjpbInBheS5vd2FyYS1rYXplLW5vLWJvbi5jb20iXSwibW9kZSI6InRlc3QiLCJjcmVhdG9yX2lkIjoiMTFmMDJlMTgtYzE1Ny0zOTk4LTk4NzgtY2I4N2ZlMzc3NjY4IiwidmVyc2lvbiI6MSwianRpIjoiMTFmMDVjOTAtNjZjNy0yYjJjLTk5ZmEtZTc4NmZhNDJiMGY5In0.pa9mbNnnszQpEX6prReqmd1g3jAHwQ-ZnnLCnmiYN0U';
@@ -81,42 +90,34 @@ let lineUserId = null;
 let checkout   = null;
 
 /* ========== ユーティリティ ========== */
-function $ (id){ return document.getElementById(id); }
+const $ = id => document.getElementById(id);
 
 /* ========== メイン ========== */
 window.addEventListener('DOMContentLoaded', async () => {
   try{
-    /** 1) LIFF 初期化 **/
+    /* 1) LIFF 初期化 */
     await liff.init({ liffId: LIFF_ID });
 
-    /** 2) UI 切り替え & フレンドシップ判定 **/
+    /* 2) UI 切り替え & プロフィール取得 */
     $('loader').style.display='none';
     $('title').style.display='block';
-    $('pay').style.display  ='inline-block';
+    $('pay').style.display='inline-block';
     $('status').style.display='block';
     $('legal').style.display='block';
 
-    if(liff.isInClient()){
+    if (liff.isInClient()){
       const profile = await liff.getProfile();
-      lineUserId    = profile.userId;
-      $('status').textContent = 'LIFF 初期化 OK (User: '+lineUserId+')';
-    }else{
+      lineUserId = profile.userId;
+      $('status').textContent = `LIFF 初期化 OK (User: ${lineUserId})`;
+    } else {
       $('status').textContent = 'LIFF 初期化 OK (LINE 外ブラウザ)';
     }
 
-    /** 3) カスタムアクションボタン (Close) **/
- // LIFF SDK が完全に ready になるのを待つ
-   await liff.ready;
-   if (liff.ui) {
-     liff.ui.setActionButton({
-       text   : '閉じる',
-       type   : 'close',
-       color  : '#ffffff',
-       bgColor: '#007bff'
-     });
-   }
+    /* 3) Close ボタン（デフォルト色） */
+    await liff.ready;
+    liff.ui?.setActionButton({ type:'close' });
 
-    /** 4) UnivaPay Checkout 準備 **/
+    /* 4) UnivaPay Checkout 準備 */
     checkout = UnivapayCheckout.create({
       appId       : UNIVAPAY_APP_ID,
       checkout    : 'payment',
@@ -131,8 +132,8 @@ window.addEventListener('DOMContentLoaded', async () => {
       onError     : e => alert('決済失敗: '+e.message)
     });
 
-    $('pay').disabled=false;
-    $('pay').onclick = () => checkout.open().catch(e=>{
+    $('pay').disabled = false;
+    $('pay').onclick  = () => checkout.open().catch(e=>{
       console.error('checkout.open エラー',e);
       alert('決済画面を開けませんでした');
     });
@@ -146,8 +147,6 @@ window.addEventListener('DOMContentLoaded', async () => {
 
 /* ========== 決済成功後コールバック ========== */
 async function handlePaid(result){
-  console.log('paid', result);
-
   try{
     const r = await fetch(BACKEND_ENDPOINT, {
       method : 'POST',
@@ -162,8 +161,8 @@ async function handlePaid(result){
     console.error('backend error', err);
     alert('サーバー連携に失敗しました');
   }finally{
-    if(liff.isInClient()) liff.closeWindow();
-    else alert('決済成功！ブラウザを閉じてください。');
+    liff.isInClient() ? liff.closeWindow() :
+                        alert('決済成功！ブラウザを閉じてください。');
   }
 }
 </script>
