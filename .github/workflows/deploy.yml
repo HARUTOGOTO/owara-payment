@@ -12,8 +12,8 @@ permissions:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    environment:          # ★ 追加 ── 必ず github-pages
-      name: github-pages
+    environment:
+      name: github-pages     
 
     steps:
       # 1) ソース取得
