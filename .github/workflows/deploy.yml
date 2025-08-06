@@ -14,12 +14,12 @@ jobs:
 
       # 2) secrets → 環境変数にマッピング
       - name: Generate config.js
-        run: ./docs/scripts/generate-config.ps1
-        shell: pwsh
+        working-directory: docs/scripts        # ★追加
+        run: pwsh ./generate-config.ps1        # ← ここは ./ だけで OK
         env:
-          LIFF_IDS            : ${{ secrets.LIFF_IDS }}
-          UNIVAPAY_APP_ID     : ${{ secrets.UNIVAPAY_APP_ID }}
-          BACKEND_ENDPOINT    : ${{ secrets.BACKEND_ENDPOINT }}
+          LIFF_IDS         : ${{ secrets.LIFF_IDS }}
+          UNIVAPAY_APP_ID  : ${{ secrets.UNIVAPAY_APP_ID }}
+          BACKEND_ENDPOINT : ${{ secrets.BACKEND_ENDPOINT }}
 
       # 3) GitHub Pages 用に docs/ フォルダをアップロード
       - uses: actions/upload-pages-artifact@v3
