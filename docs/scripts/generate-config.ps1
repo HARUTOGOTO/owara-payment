@@ -1,13 +1,9 @@
 <#
-  PowerShell script
-  ──────────────────────────────────────────────────────
-  • docs/scripts/generate-config.ps1
-  • 環境変数から値を取り docs/src/config.js を生成
-  • Windows / Linux どちらのランナーでも動く
+  docs/scripts/generate-config.ps1
+  環境変数から docs/src/config.js を生成 (Win/Linux 共通)
 #>
 
 try {
-    # ---------- 取り込む ---------
     $liffIds         = $env:LIFF_IDS
     $univapayAppId   = $env:UNIVAPAY_APP_ID
     $backendEndpoint = $env:BACKEND_ENDPOINT
@@ -16,14 +12,10 @@ try {
         throw "One or more env vars are empty."
     }
 
-    # ---------- 出力先 ----------
-    $outPath = Join-Path $PSScriptRoot '..\src\config.js'
-    $outDir  = Split-Path $outPath
+    # 出力先 docs/src/config.js
+    $outPath = Join-Path $PSScriptRoot '../src/config.js'
+    New-Item -ItemType Directory -Force -Path (Split-Path $outPath) | Out-Null
 
-    # フォルダが無ければ作成
-    New-Item -ItemType Directory -Force -Path $outDir | Out-Null
-
-    # ---------- ファイル生成 ----------
     @"
 // Auto-generated – DO NOT COMMIT
 export const liffIds         = '$liffIds';
@@ -31,10 +23,10 @@ export const univapayAppId   = '$univapayAppId';
 export const backendEndpoint = '$backendEndpoint';
 "@ | Out-File -Encoding UTF8 -FilePath $outPath -Force
 
-    Write-Host "✅  generated  $outPath"
-    Get-Item $outPath | Format-List -Property FullName, Length, LastWriteTime
-
-} catch {
-    Write-Error "❌  generate-config.ps1 failed: $_"
+    Write-Host "✅ generated $outPath"
+    Get-Item $outPath | Format-List FullName,Length,LastWriteTime
+}
+catch {
+    Write-Error "❌ generate-config.ps1 failed: $_"
     exit 1
 }
