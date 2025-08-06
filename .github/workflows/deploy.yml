@@ -1,5 +1,8 @@
 name: build & deploy Pages
-on: [push]
+
+on:
+  push:
+    branches: [main]         # ← 公開ブランチ
 
 permissions:
   contents: read
@@ -10,11 +13,13 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     environment:
-      name: github-pages
+      name: github-pages     # ← 必須
 
     steps:
+      # ───────── 1. ソース取得
       - uses: actions/checkout@v4
 
+      # ───────── 2. config.js 生成
       - name: Generate config.js
         working-directory: docs/scripts
         run: pwsh ./generate-config.ps1
@@ -23,7 +28,25 @@ jobs:
           UNIVAPAY_APP_ID  : ${{ secrets.UNIVAPAY_APP_ID }}
           BACKEND_ENDPOINT : ${{ secrets.BACKEND_ENDPOINT }}
 
+      # デバッグ: 生成されたファイルを確認
+      - name: DEBUG – show docs/src
+        run: |
+          echo "===== docs/src ====="
+          ls docs/src -lR
+
+      # ───────── 3. Pages 用セットアップ
       - uses: actions/configure-pages@v4
+
+      # ───────── 4. docs/ を artifact 化
       - uses: actions/upload-pages-artifact@v3
-        with: { path: docs }
+        with:
+          path: docs
+
+      # デバッグ: artifact 内容を確認
+      - name: DEBUG – artifact manifest
+        run: |
+          echo "===== artifact manifest ====="
+          cat ${{ steps.upload-pages-artifact.outputs.artifact-manifest }}
+
+      # ───────── 5. デプロイ
       - uses: actions/deploy-pages@v4
