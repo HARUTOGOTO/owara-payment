@@ -15,6 +15,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # ---------- config.js 生成 ----------
       - name: Generate config.js
         working-directory: docs/scripts
         run: pwsh ./generate-config.ps1
@@ -23,29 +24,21 @@ jobs:
           UNIVAPAY_APP_ID  : ${{ secrets.UNIVAPAY_APP_ID }}
           BACKEND_ENDPOINT : ${{ secrets.BACKEND_ENDPOINT }}
 
-      - name: DEBUG – show docs/src
-        run: ls -lR docs/src
-
-      # ← ここで Jekyll 無効化（必要なら）
+      # ---------- Jekyll 無効化 ----------
       - name: Add .nojekyll
         run: echo "" > docs/.nojekyll
 
+      # ---------- Pages artifact ----------
       - uses: actions/configure-pages@v4
-
       - uses: actions/upload-pages-artifact@v3
+        id: upload               # ← 出力を受け取るため id を付ける
         with:
           path: docs
 
-      - name: DEBUG – list artifact files
+      # ---------- artifact の中身を確認（tar） ----------
+      - name: DEBUG – list first 40 files in artifact
         run: |
-          mkdir tmp
-          # ダウンロード
-          gh api -H "Accept: application/vnd.github+json" \
-            /repos/${{ github.repository }}/actions/artifacts/${{ steps.upload-pages-artifact.outputs.artifact-id }}/zip \
-            > tmp/a.zip
-          unzip -l tmp/a.zip | head -n 40
-        env:
-          GH_TOKEN: ${{ github.token }}
+          tar -tvf "${{ steps.upload.outputs.artifact-path }}" | head -n 40
 
-
+      # ---------- デプロイ ----------
       - uses: actions/deploy-pages@v4
