@@ -7,7 +7,7 @@
 #>
 
 try {
-    # ---------- 取り込む ----------
+    # ---------- 取り込む ---------
     $liffIds         = $env:LIFF_IDS
     $univapayAppId   = $env:UNIVAPAY_APP_ID
     $backendEndpoint = $env:BACKEND_ENDPOINT
