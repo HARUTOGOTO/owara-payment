@@ -35,7 +35,7 @@ jobs:
         with:
           path: docs
 
-      # ---------- artifact の中身を確認（tar） ----------
+      # ---------- artifact の中身を確認（tar） ---------
       - name: DEBUG – list artifact files
         if: always()
         run: |
