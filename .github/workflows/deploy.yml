@@ -1,0 +1,30 @@
+name: build & deploy Pages
+
+on:
+  push:
+    branches: [main]     # ← 公開ブランチ
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1) ソース取得
+      - uses: actions/checkout@v4
+
+      # 2) secrets → 環境変数にマッピング
+      - name: Generate config.js
+        run: ./docs/scripts/generate-config.ps1
+        shell: pwsh
+        env:
+          LIFF_IDS            : ${{ secrets.LIFF_IDS }}
+          UNIVAPAY_APP_ID     : ${{ secrets.UNIVAPAY_APP_ID }}
+          BACKEND_ENDPOINT    : ${{ secrets.BACKEND_ENDPOINT }}
+
+      # 3) GitHub Pages 用に docs/ フォルダをアップロード
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: docs       # ← ここを公開フォルダに合わせる
+
+      # 4) デプロイ
+      - uses: actions/deploy-pages@v4
