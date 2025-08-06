@@ -38,6 +38,14 @@ jobs:
 
       - name: DEBUG – list artifact files
         run: |
-          tar -tvf ${{ steps.upload-pages-artifact.outputs.artifact-path }} | head -n 50
+          mkdir tmp
+          # ダウンロード
+          gh api -H "Accept: application/vnd.github+json" \
+            /repos/${{ github.repository }}/actions/artifacts/${{ steps.upload-pages-artifact.outputs.artifact-id }}/zip \
+            > tmp/a.zip
+          unzip -l tmp/a.zip | head -n 40
+        env:
+          GH_TOKEN: ${{ github.token }}
+
 
       - uses: actions/deploy-pages@v4
