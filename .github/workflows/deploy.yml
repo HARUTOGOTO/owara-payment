@@ -2,7 +2,12 @@ name: build & deploy Pages
 
 on:
   push:
-    branches: [main]     # ← 公開ブランチ
+    branches: [main]
+
+permissions:                      # ★ 追加
+  contents: read                  # checkout 用
+  pages: write                    # Pages artifact → branch へ書き込む
+  id-token: write                 # OIDC トークン取得
 
 jobs:
   deploy:
@@ -12,19 +17,22 @@ jobs:
       # 1) ソース取得
       - uses: actions/checkout@v4
 
-      # 2) secrets → 環境変数にマッピング
+      # 2) secrets → 環境変数にマッピングして config.js 生成
       - name: Generate config.js
-        working-directory: docs/scripts        # ★追加
-        run: pwsh ./generate-config.ps1        # ← ここは ./ だけで OK
+        working-directory: docs/scripts
+        run: pwsh ./generate-config.ps1
         env:
           LIFF_IDS         : ${{ secrets.LIFF_IDS }}
           UNIVAPAY_APP_ID  : ${{ secrets.UNIVAPAY_APP_ID }}
           BACKEND_ENDPOINT : ${{ secrets.BACKEND_ENDPOINT }}
 
-      # 3) GitHub Pages 用に docs/ フォルダをアップロード
+      # 3) Pages の設定（必須）
+      - uses: actions/configure-pages@v4
+
+      # 4) docs/ をアーティファクト化
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: docs       # ← ここを公開フォルダに合わせる
+          path: docs
 
-      # 4) デプロイ
+      # 5) デプロイ
       - uses: actions/deploy-pages@v4
