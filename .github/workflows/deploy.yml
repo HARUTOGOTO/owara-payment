@@ -9,13 +9,11 @@ permissions:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
+    environment: { name: github-pages }
 
     steps:
       - uses: actions/checkout@v4
 
-      # ---------- config.js 生成 ----------
       - name: Generate config.js
         working-directory: docs/scripts
         run: pwsh ./generate-config.ps1
@@ -24,26 +22,13 @@ jobs:
           UNIVAPAY_APP_ID  : ${{ secrets.UNIVAPAY_APP_ID }}
           BACKEND_ENDPOINT : ${{ secrets.BACKEND_ENDPOINT }}
 
-      # ---------- Jekyll 無効化 ----------
+      - name: DEBUG – show docs/src
+        run: ls -l docs/src
+
       - name: Add .nojekyll
         run: echo "" > docs/.nojekyll
 
-      # ---------- Pages artifact ----------
       - uses: actions/configure-pages@v4
       - uses: actions/upload-pages-artifact@v3
-        id: upload               # ← 出力を受け取るため id を付ける
-        with:
-          path: docs
-
-      # ---------- artifact の中身を確認（tar） ---------
-      - name: DEBUG – list artifact files
-        if: always()
-        run: |
-          curl -L -H "Authorization: Bearer ${{ github.token }}" \
-            "https://api.github.com/repos/${{ github.repository }}/actions/artifacts/${{ steps.upload.outputs.artifact-id }}/zip" \
-            -o a.zip
-          unzip -l a.zip | head -n 40 || true
-
-
-      # ---------- デプロイ ----------
+        with: { path: docs }
       - uses: actions/deploy-pages@v4
