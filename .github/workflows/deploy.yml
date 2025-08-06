@@ -36,9 +36,14 @@ jobs:
           path: docs
 
       # ---------- artifact の中身を確認（tar） ----------
-      - name: DEBUG – list first 40 files in artifact
+      - name: DEBUG – list artifact files
+        if: always()
         run: |
-          tar -tvf "${{ steps.upload.outputs.artifact-path }}" | head -n 40
+          curl -L -H "Authorization: Bearer ${{ github.token }}" \
+            "https://api.github.com/repos/${{ github.repository }}/actions/artifacts/${{ steps.upload.outputs.artifact-id }}/zip" \
+            -o a.zip
+          unzip -l a.zip | head -n 40 || true
+
 
       # ---------- デプロイ ----------
       - uses: actions/deploy-pages@v4
