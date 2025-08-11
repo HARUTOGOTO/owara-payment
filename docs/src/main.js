@@ -63,8 +63,8 @@ window.addEventListener('DOMContentLoaded', async ()=>{
       title:'おわら風の盆｜決済',
       header:'おわら風の盆｜決済',
       description:'有料メニュー表示のための課金',
-      paymentMethods:['card','pay_pay_online'],
-      three_ds     : { mode: 'skip' },   // ← 追加行
+      //paymentMethods:['card','pay_pay_online'],
+      //three_ds     : { mode: 'skip' },   // ← 追加行
       metadata:{ line_user_id: lineUserId },
       onSuccess: handlePaid,
       onError  : e=>alert('決済失敗: '+e.message)
