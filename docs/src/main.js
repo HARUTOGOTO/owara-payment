@@ -4,7 +4,7 @@ import {
     backendEndpoint
 } from './config.js';
 
-const LIFF_IDS          = liffIds;
+const LIFF_ID          = liffIds;
 const UNIVAPAY_APP_ID   = univapayAppId;
 const BACKEND_ENDPOINT  = backendEndpoint;
 
@@ -19,7 +19,7 @@ const uuid = () => (crypto.randomUUID?.() || (Date.now().toString(36)+Math.rando
 
 // 複数 LIFF_ID フォールバック初期化
 async function initLIFF(){
-  for (const id of LIFF_IDS){
+  for (const id of liff_ID){
     try{
       await liff.init({ liffId:id });
       return id;
