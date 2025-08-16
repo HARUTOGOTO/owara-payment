@@ -24,8 +24,7 @@ jobs:
           UNIVAPAY_FORM_ID:      ${{ secrets.UNIVAPAY_FORM_ID }}
           SITE_BASE_URL:         ${{ secrets.SITE_BASE_URL }}
           CHECKOUT_RETURN_PATH:  ${{ secrets.CHECKOUT_RETURN_PATH }}
-          BACKEND_ENDPOINT_URL:  ${{ secrets.BACKEND_ENDPOINT_URL }}
-
+          
       - name: DEBUG – show docs/src
         run: ls -l docs/src
 
