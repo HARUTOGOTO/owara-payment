@@ -1,3 +1,4 @@
+# deploy.yml##
 name: build & deploy Pages
 on: [push]
 
@@ -15,26 +16,20 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Generate config.js
-        shell: pwsh
         working-directory: docs/scripts
+        run: pwsh ./generate-config.ps1
         env:
-          LIFF_IDS_JSON:         ${{ secrets.LIFF_IDS_JSON }}
-          LIFF_IDS:              ${{ secrets.LIFF_IDS }}           # 単一IDのときの保険
-          UNIVAPAY_APP_JWT:      ${{ secrets.UNIVAPAY_APP_JWT }}
-          UNIVAPAY_FORM_ID:      ${{ secrets.UNIVAPAY_FORM_ID }}
-          SITE_BASE_URL:         ${{ secrets.SITE_BASE_URL }}
-          CHECKOUT_RETURN_PATH:  ${{ secrets.CHECKOUT_RETURN_PATH }}
-          BACKEND_ENDPOINT:      ${{ secrets.BACKEND_ENDPOINT }}
-        run: ./generate-config.ps1
+          LIFF_IDS         : ${{ secrets.LIFF_IDS }}
+          UNIVAPAY_APP_ID  : ${{ secrets.UNIVAPAY_APP_ID }}
+          BACKEND_ENDPOINT : ${{ secrets.BACKEND_ENDPOINT }}
 
       - name: DEBUG – show docs/src
-        run: ls -la docs/src
+        run: ls -l docs/src
 
       - name: Add .nojekyll
         run: echo "" > docs/.nojekyll
 
       - uses: actions/configure-pages@v4
       - uses: actions/upload-pages-artifact@v3
-        with:
-          path: docs
+        with: { path: docs }
       - uses: actions/deploy-pages@v4
