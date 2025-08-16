@@ -18,7 +18,7 @@
 <script>
 (function(){
   const q = new URLSearchParams(location.search);
-  const liffId = q.get("liffId") || "";       // 必須
+  const liffId = q.get("liffIds") || "";       // 必須
   // 付与された情報は LIFF 側に渡しておく（必要に応じて利用）
   const back = new URL(`https://liff.line.me/${liffId}`);
   for (const [k,v] of q.entries()) back.searchParams.set(k, v);
