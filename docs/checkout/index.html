@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>おわら風の盆｜お支払いに進んでいます</title>
+<style>
+  body{font-family:-apple-system,BlinkMacSystemFont,"Noto Sans JP",sans-serif;margin:0;padding:24px;text-align:center}
+  .btn{display:inline-block;margin-top:16px;padding:10px 16px;border-radius:10px;background:#0d6efd;color:#fff;text-decoration:none}
+  .note{color:#666;margin-top:12px}
+</style>
+</head>
+<body>
+  <h1>お支払いページを開いています…</h1>
+  <p class="note">自動で開かない場合は下のボタンを押してください。</p>
+  <a id="open" class="btn" href="javascript:void(0)">決済ページを開く</a>
+  <p class="note">※外部ブラウザでカード/PayPayの決済を行います</p>
+
+<script>
+(function(){
+  // ==== ここだけ環境に合わせて設定 ====
+  const FORM_ID = "<リンクフォームID>";      // 例: "11f075c9-b..."（管理画面のフォーム詳細で確認）
+  const APP_JWT = "<本番アプリトークン(JWT)>"; // 例: "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9...."
+  const FORM_BASE = `https://checkout.univapay.com/forms/${FORM_ID}`;
+  // =====================================
+
+  const qs = new URLSearchParams(location.search);
+  const amount = Number(qs.get("amount") || "100");
+  const liffId = qs.get("liffId") || "";       // 戻り先のLIFF
+  const lineUserId = qs.get("lu") || "";       // 任意（必要に応じてバックエンドで照合）
+  const state = qs.get("state") || "";         // 任意（Webhook照合用）
+  const currency = "jpy";
+
+  // 戻り口（この返り口で LIFF を開き直す）
+  const RETURN = "https://pay.owara-kaze-no-bon.com/checkout/return.html";
+
+  // Hosted のクエリを構築
+  const hosted = new URL(FORM_BASE);
+  const p = hosted.searchParams;
+  p.set("appId", APP_JWT);                             // 認証（JWT）
+  p.set("checkout", "payment");
+  p.set("amount", String(amount));
+  p.set("currency", currency);
+  p.set("paymentMethods", "card,pay_pay_online");      // ← カード＋PayPay
+  // 必要なら「住所/電話等」の収集はフォーム設定側でONにしておけばOK
+
+  // 完了/失敗/保留の戻り先（LIFFに戻すための情報を付与）
+  const back = (ok) => {
+    const u = new URL(RETURN);
+    u.searchParams.set("ok", ok);                      // 1=成功 0=失敗 2=保留
+    u.searchParams.set("liffId", liffId);
+    if (lineUserId) u.searchParams.set("lu", lineUserId);
+    if (state)      u.searchParams.set("state", state);
+    return u.toString();
+  };
+  p.set("successRedirectUrl", back("1"));
+  p.set("failureRedirectUrl", back("0"));
+  p.set("pendingRedirectUrl", back("2"));
+  p.set("autoRedirect", "true");                       // 決済完了画面→自動遷移
+
+  // メタデータを戻りURLに付与したい場合（利用可の環境のみ）
+  // p.set("showRedirectMetadata", "true");
+
+  const go = () => location.replace(hosted.toString());
+  document.getElementById("open").addEventListener("click", go);
+  setTimeout(go, 300);  // 自動で飛ばす。ブロック時のためボタンも併置
+})();
+</script>
+</body>
+</html>
