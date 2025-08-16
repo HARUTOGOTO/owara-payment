@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>処理しています…</title>
+<style>
+  body{font-family:-apple-system,BlinkMacSystemFont,"Noto Sans JP",sans-serif;margin:0;padding:24px;text-align:center}
+  .btn{display:inline-block;margin-top:16px;padding:10px 16px;border-radius:10px;background:#0d6efd;color:#fff;text-decoration:none}
+  .note{color:#666;margin-top:12px}
+</style>
+</head>
+<body>
+  <h1 id="h">LINE に戻っています…</h1>
+  <p class="note" id="m">自動で戻らない場合は下のボタンを押してください。</p>
+  <a id="back" class="btn">LINE に戻る</a>
+
+<script>
+(function(){
+  const q = new URLSearchParams(location.search);
+  const liffId = q.get("liffId") || "";       // 必須
+  // 付与された情報は LIFF 側に渡しておく（必要に応じて利用）
+  const back = new URL(`https://liff.line.me/${liffId}`);
+  for (const [k,v] of q.entries()) back.searchParams.set(k, v);
+
+  document.getElementById("back").href = back.toString();
+  // 自動遷移（端末がブロックする場合があるためボタンも併置）
+  setTimeout(() => location.replace(back.toString()), 600);
+})();
+</script>
+</body>
+</html>
