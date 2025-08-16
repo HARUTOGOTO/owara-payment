@@ -16,55 +16,50 @@
   <a id="open" class="btn" href="javascript:void(0)">決済ページを開く</a>
   <p class="note">※外部ブラウザでカード/PayPayの決済を行います</p>
 
-<script>
-(function(){
-  // ==== ここだけ環境に合わせて設定 ====
-  const FORM_ID = "<リンクフォームID>";      // 例: "11f075c9-b..."（管理画面のフォーム詳細で確認）
-  const APP_JWT = "<本番アプリトークン(JWT)>"; // 例: "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9...."
-  const FORM_BASE = `https://checkout.univapay.com/forms/${FORM_ID}`;
-  // =====================================
+  <!-- ここにモジュールを入れる（docs/checkout から ../src/config.js を import） -->
+  <script type="module">
+    import {
+      univapayAppId,      // JWT（config.js）
+      univapayFormId,     // フォームID（config.js）
+      siteBaseUrl,
+      checkoutReturnPath
+    } from "../src/config.js";
 
-  const qs = new URLSearchParams(location.search);
-  const amount = Number(qs.get("amount") || "100");
-  const liffId = qs.get("liffId") || "";       // 戻り先のLIFF
-  const lineUserId = qs.get("lu") || "";       // 任意（必要に応じてバックエンドで照合）
-  const state = qs.get("state") || "";         // 任意（Webhook照合用）
-  const currency = "jpy";
+    const qs = new URLSearchParams(location.search);
+    const amount     = Number(qs.get("amount") || "100");
+    const liffId     = qs.get("liffId") || "";
+    const lineUserId = qs.get("lu") || "";
+    const state      = qs.get("state") || "";
+    const currency   = "jpy";
 
-  // 戻り口（この返り口で LIFF を開き直す）
-  const RETURN = "https://pay.owara-kaze-no-bon.com/checkout/return.html";
+    const base = `https://checkout.univapay.com/forms/${univapayFormId}`;
 
-  // Hosted のクエリを構築
-  const hosted = new URL(FORM_BASE);
-  const p = hosted.searchParams;
-  p.set("appId", APP_JWT);                             // 認証（JWT）
-  p.set("checkout", "payment");
-  p.set("amount", String(amount));
-  p.set("currency", currency);
-  p.set("paymentMethods", "card,pay_pay_online");      // ← カード＋PayPay
-  // 必要なら「住所/電話等」の収集はフォーム設定側でONにしておけばOK
+    const back = (ok) => {
+      const u = new URL(siteBaseUrl + checkoutReturnPath);
+      u.searchParams.set("ok", ok);           // 1=成功 0=失敗 2=保留
+      if (liffId)     u.searchParams.set("liffId", liffId);
+      if (lineUserId) u.searchParams.set("lu", lineUserId);
+      if (state)      u.searchParams.set("state", state);
+      return u.toString();
+    };
 
-  // 完了/失敗/保留の戻り先（LIFFに戻すための情報を付与）
-  const back = (ok) => {
-    const u = new URL(RETURN);
-    u.searchParams.set("ok", ok);                      // 1=成功 0=失敗 2=保留
-    u.searchParams.set("liffId", liffId);
-    if (lineUserId) u.searchParams.set("lu", lineUserId);
-    if (state)      u.searchParams.set("state", state);
-    return u.toString();
-  };
-  p.set("successRedirectUrl", back("1"));
-  p.set("failureRedirectUrl", back("0"));
-  p.set("pendingRedirectUrl", back("2"));
-  p.set("autoRedirect", "true");                       // 決済完了画面→自動遷移
+    const hosted = new URL(base);
+    const p = hosted.searchParams;
+    p.set("appId", univapayAppId);
+    p.set("checkout", "payment");
+    p.set("amount", String(amount));
+    p.set("currency", currency);
+    p.set("paymentMethods", "card,pay_pay_online"); // カード＋PayPay
+    p.set("successRedirectUrl", back("1"));
+    p.set("failureRedirectUrl", back("0"));
+    p.set("pendingRedirectUrl", back("2"));
+    p.set("autoRedirect", "true");
 
-  // メタデータを戻りURLに付与したい場合（利用可の環境のみ）
-  // p.set("showRedirectMetadata", "true");
+    const go = () => location.replace(hosted.toString());
+    document.getElementById("open").addEventListener("click", go);
+    setTimeout(go, 300);
+  </script>
 
-  const go = () => location.replace(hosted.toString());
-  document.getElementById("open").addEventListener("click", go);
-  setTimeout(go, 300);  // 自動で飛ばす。ブロック時のためボタンも併置
-})();
-</script>
+  <noscript>このページを開くには JavaScript が必要です。</noscript>
 </body>
 </html>
