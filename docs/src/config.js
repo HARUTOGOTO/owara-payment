@@ -4,5 +4,5 @@ export const univapayAppId      = 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIi
 export const univapayFormId     = '11f07a87-7ef5-c2fc-a45c-db5e7d0ec9f5';   // ← リンクフォームID（/forms/と?appId=の間）
 export const siteBaseUrl        = 'https://pay.owara-kaze-no-bon.com';
 export const checkoutReturnPath = '/checkout/return.html';
-export const backendEndpoint = 'https://api.owara-kaze-no-bon.com/pay-success';                                     // 今回未使用なら空でOK
+export const backendEndpoint = 'https://6j89814w74.execute-api.us-east-1.amazonaws.com/prod/pay-success';                                     // 今回未使用なら空でOK
 export const appEnv             = 'production';
