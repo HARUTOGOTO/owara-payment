@@ -4,7 +4,7 @@ import {
     backendEndpoint
 } from './config.js';
 
-const LIFF_IDS          = JSON.parse(liffIds);
+const LIFF_IDS          = liffIds;
 const UNIVAPAY_APP_ID   = univapayAppId;
 const BACKEND_ENDPOINT  = backendEndpoint;
 
