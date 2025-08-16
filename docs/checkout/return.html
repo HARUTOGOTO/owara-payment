@@ -18,14 +18,21 @@
 <script>
 (function(){
   const q = new URLSearchParams(location.search);
-  const liffId = q.get("liffIds") || "";       // 必須
-  // 付与された情報は LIFF 側に渡しておく（必要に応じて利用）
-  const back = new URL(`https://liff.line.me/${liffId}`);
+  const liffId = q.get("liffId") || "";   // ← liffIds → liffId に修正（必須）
+
+  if (!liffId) {
+    document.getElementById("h").textContent = "LINE に戻れませんでした";
+    document.getElementById("m").textContent = "この画面を閉じ、LINEトークからもう一度お試しください。";
+    document.getElementById("back").style.display = "none";
+    return;
+  }
+
+  const back = new URL(`https://liff.line.me/${encodeURIComponent(liffId)}`);
   for (const [k,v] of q.entries()) back.searchParams.set(k, v);
 
-  document.getElementById("back").href = back.toString();
-  // 自動遷移（端末がブロックする場合があるためボタンも併置）
-  setTimeout(() => location.replace(back.toString()), 600);
+  const href = back.toString();
+  document.getElementById("back").href = href;
+  setTimeout(() => location.replace(href), 300);  // 履歴を汚さない
 })();
 </script>
 </body>
