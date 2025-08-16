@@ -4,8 +4,8 @@ import {
     backendEndpoint
 } from './config.js';
 
-const liff_ID= liffIds;
-const UNIVAPAY_APP_IDS  = univapayAppId;
+const liff_IDS          = liffIds;
+const UNIVAPAY_APP_ID   = univapayAppId;
 const BACKEND_ENDPOINT  = backendEndpoint;
 
 /* ---------- 変数 ---------- */
