@@ -1,7 +1,7 @@
 # docs/scripts/generate-config.ps1
 $ErrorActionPreference = 'Stop'
 
-# 1) 受け取り（空白トリム）
+# --- 受け取り ---
 $envMap = [ordered]@{
   'LIFF_IDS_JSON'        = $env:LIFF_IDS_JSON
   'LIFF_IDS'             = $env:LIFF_IDS
@@ -13,33 +13,34 @@ $envMap = [ordered]@{
 }
 $envMap.Keys | ForEach-Object { if ($envMap[$_] -ne $null) { $envMap[$_] = $envMap[$_].Trim() } }
 
-# 2) LIFF_IDS_JSON が無ければ LIFF_IDS（単一）から生成
+# --- フォールバック（単一LIFF ID→JSON配列へ）---
 if ([string]::IsNullOrWhiteSpace($envMap.LIFF_IDS_JSON) -and
     -not [string]::IsNullOrWhiteSpace($envMap.LIFF_IDS)) {
   $envMap.LIFF_IDS_JSON = '["' + $envMap.LIFF_IDS + '"]'
 }
 
-# 3) 必須の空チェック（どれが欠けてるかを明示）
+# --- 必須チェック ---
 $required = @('LIFF_IDS_JSON','UNIVAPAY_APP_JWT','UNIVAPAY_FORM_ID','SITE_BASE_URL')
 $missing = @()
 foreach ($k in $required) {
   if ([string]::IsNullOrWhiteSpace($envMap[$k])) { $missing += $k }
 }
 if ($missing.Count -gt 0) {
-  Write-Error "generate-config.ps1 failed: missing or empty envs -> $($missing -join ', ')"
+  Write-Host "::error::Missing or empty envs -> $($missing -join ', ')"
+  exit 1
 }
 
-# 4) デフォルト値
+# --- デフォルト ---
 if ([string]::IsNullOrWhiteSpace($envMap.CHECKOUT_RETURN_PATH)) { $envMap.CHECKOUT_RETURN_PATH = '/checkout/return.html' }
 if ($envMap.BACKEND_ENDPOINT -eq $null) { $envMap.BACKEND_ENDPOINT = '' }
 
-# 5) 出力先を作成
-$dstDir = Join-Path $PSScriptRoot '..' | Join-Path -ChildPath 'src'
-New-Item -ItemType Directory -Path $dstDir -Force | Out-Null
+# --- 出力先を堅牢に作成（docs/src）---
+$docsDir = Split-Path -Parent $PSScriptRoot      # docs/scripts -> docs
+$dstDir  = Join-Path $docsDir 'src'              # docs/src
+[System.IO.Directory]::CreateDirectory($dstDir) | Out-Null
 $dst = Join-Path $dstDir 'config.js'
 
-# 6) ここで “文字列として” 安全に埋め込む（JWT などを壊さない）
-#    liffIds は既存コードに合わせて「JSON文字列」をエクスポートする
+# --- 文字列を安全に埋め込む（JWTが壊れない）---
 $js = @"
 export const liffIds            = @'${($envMap.LIFF_IDS_JSON)}'@;
 export const univapayAppId      = @'${($envMap.UNIVAPAY_APP_JWT)}'@;
@@ -51,6 +52,9 @@ export const appEnv             = "production";
 "@
 
 Set-Content -LiteralPath $dst -Value $js -Encoding UTF8
+
+# --- ダイジェスト（機微は出さない）---
+$fid = $envMap.UNIVAPAY_FORM_ID
+$fidShort = if ($fid.Length -ge 8) { $fid.Substring(0,8) } else { $fid }
 Write-Host "✅ wrote $dst"
-# 機密を出さない形でダイジェストを出力
-Write-Host "CONFIG summary: liffIds length=$(($envMap.LIFF_IDS_JSON).Length), formId=$($envMap.UNIVAPAY_FORM_ID.Substring(0,8))..., site=$($envMap.SITE_BASE_URL)"
+Write-Host "CONFIG summary: liffIdsLen=$(($envMap.LIFF_IDS_JSON).Length), formId=${fidShort}..., site=$($envMap.SITE_BASE_URL)"
