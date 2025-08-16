@@ -12,94 +12,70 @@ const BACKEND_ENDPOINT  = backendEndpoint;
 let lineUserId = null;
 let checkout   = null;
 
-/* ---------- DOM Utility ---------- */
-const $ = id => document.getElementById(id);
+// ユーティリティ
+const $ = (id) => document.getElementById(id);
+const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+const uuid = () => (crypto.randomUUID?.() || (Date.now().toString(36)+Math.random().toString(36).slice(2,10))).toUpperCase();
 
-/* ---------- LIFF 初期化（複数 ID フォールバック） ---------- */
+// 複数 LIFF_ID フォールバック初期化
 async function initLIFF(){
   for (const id of LIFF_IDS){
     try{
       await liff.init({ liffId:id });
-      console.log('LIFF init success with', id);
-      return id;            // 成功した ID を返す
-    }catch(e){
-      console.warn('LIFF init failed for', id, e.message);
-    }
+      return id;
+    }catch(e){ console.warn("LIFF init failed:", id, e?.message); }
   }
-  throw new Error('すべての LIFF_ID で初期化に失敗しました');
+  throw new Error("すべての LIFF_ID で初期化に失敗しました");
 }
 
-/* ---------- メイン ---------- */
-window.addEventListener('DOMContentLoaded', async ()=>{
+window.addEventListener("DOMContentLoaded", async () => {
+  const status = $("status");
   try{
     const usedId = await initLIFF();
+    await liff.ready;
 
-    /* UI 切り替え */
-    $('loader').style.display='none';
-    $('hero').style.display='block';
-    $('card').style.display='block';
-    $('price').style.display='block';
-    $('applyBtn').style.display='block';
-    $('status').style.display='block';
-    $('status').textContent = `LIFF ID: ${usedId} で初期化完了`;
+    // UI 表示
+    $("applyBtn").style.display = "block";
+    $("applyBtn").disabled = false;
+    status.style.display = "block";
+    status.textContent = `LIFF ID: ${usedId} で初期化完了`;
 
+    // ユーザーID（LIFF内のみ取得可能）
+    let lineUserId = null;
     if (liff.isInClient()){
-      const profile = await liff.getProfile();
-      lineUserId = profile.userId;
-      $('status').textContent += ` | User: ${lineUserId}`;
+      try{
+        lineUserId = (await liff.getProfile())?.userId || null;
+        status.textContent += lineUserId ? ` | User: ${lineUserId}` : "";
+      }catch(_){}
     }
 
-    /* Close ボタン */
-    await liff.ready;
-    liff.ui?.setActionButton({ type:'close' });
+    // 申込クリック → 外部（Hosted）へ
+    $("applyBtn").addEventListener("click", async () => {
+      try{
+        const orderState = uuid();   // 照合用トークン（Webhook等で使うなら保存してもOK）
+        // Hosted に渡すパラメータを作る（詳細は下の /checkout/index.html と一致させる）
+        const url = new URL("https://pay.owara-kaze-no-bon.com/checkout/index.html");
+        url.searchParams.set("amount", "100");
+        url.searchParams.set("lu", lineUserId || "");
+        url.searchParams.set("liffId", usedId);
+        url.searchParams.set("state", orderState);
 
-    /* Checkout 準備 */
-    checkout = UnivapayCheckout.create({
-      appId: UNIVAPAY_APP_ID,
-      checkout:'payment',
-      amount:100,
-      currency:'jpy',
-      cvvAuthorize: true,
-      title:'おわら風の盆｜決済',
-      header:'おわら風の盆｜決済',
-      description:'有料メニュー表示のための課金',
-      paymentMethods:['card','pay_pay_online'],
-      //three_ds     : { mode: 'skip' },   // ← 追加行
-      metadata:{ line_user_id: lineUserId },
-      onSuccess: handlePaid,
-      onError  : e=>alert('決済失敗: '+e.message)
-    });
-
-    $('applyBtn').disabled = false;
-    $('applyBtn').addEventListener('click', () => {
-      checkout.open().catch(e=>{
-        console.error('checkout.open error', e);
-        alert('決済画面を開けませんでした');
-      });
+        // 外部ブラウザで開く（iOS=Safari / Android=既定ブラウザ）
+        if (liff.openWindow){
+          liff.openWindow({ url: url.toString(), external: true });
+        }else{
+          // 念のためのフォールバック（LIFF外から開かれても動くように）
+          location.href = url.toString();
+        }
+      }catch(e){
+        console.error("open external error", e);
+        alert("決済ページを開けませんでした。通信環境をご確認ください。");
+      }
     });
 
   }catch(err){
-    console.error('LIFF init error', err);
-    $('status').style.display='block';
-    $('status').textContent = 'LIFF 初期化失敗: '+err.message;
+    console.error("LIFF init error", err);
+    status.style.display = "block";
+    status.textContent = "LIFF 初期化失敗: " + err.message;
   }
 });
-
-/* ---------- 決済成功後 ---------- */
-async function handlePaid(result){
-  try{
-    await fetch(BACKEND_ENDPOINT, {
-      method:'POST',
-      headers:{ 'Content-Type':'application/json' },
-      body:JSON.stringify({
-        transactionToken: result.id,
-        lineUserId
-      })
-    });
-  }catch(e){
-    console.error('backend error', e);
-  }finally{
-    liff.isInClient() ? liff.closeWindow() :
-      alert('決済成功！ブラウザを閉じてください。');
-  }
-}
