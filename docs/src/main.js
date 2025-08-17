@@ -84,31 +84,28 @@ window.addEventListener('DOMContentLoaded', async () => {
     // ----------------------------------------------
 
     // 申込 → /create-checkout を叩いて返ってきた Hosted URL を外部で開く（A-1）
-    $('applyBtn').addEventListener('click', async () => {
-      const language =
-        (liff.getLanguage?.() || navigator.language || 'ja').toLowerCase().startsWith('en')
-          ? 'en' : 'ja';
-      try {
-        const r = await fetch(createCheckoutEndpoint, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            lineUserId: lineUserId,      // 取れない端末でもWebhook側で metadata から確定
-            amount: 100,
-            language,
-            planId: 'basic'
-          })
-        });
-        const data = await r.json();
-        const checkoutUrl = data.checkoutUrl || data.url;
-        if (!checkoutUrl) throw new Error('No checkoutUrl');
-        if (liff.openWindow) liff.openWindow({ url: checkoutUrl, external: true });
-        else location.href = checkoutUrl;
-      } catch (e) {
-        console.error(e);
-        alert('決済ページを開けませんでした。時間をおいてお試しください。');
-      }
+$('applyBtn').addEventListener('click', async () => {
+  const language =
+    (liff.getLanguage?.() || navigator.language || 'ja').toLowerCase().startsWith('en') ? 'en' : 'ja';
+  try {
+    const r = await fetch(createCheckoutEndpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        lineUserId: (await liff.getProfile())?.userId || null,
+        amount: 100,
+        language,
+        planId: 'basic'
+      })
     });
+    const { checkoutUrl } = await r.json();
+    if (!checkoutUrl) throw new Error('No checkoutUrl');
+    liff.openWindow ? liff.openWindow({ url: checkoutUrl, external: true }) : (location.href = checkoutUrl);
+  } catch (e) {
+    console.error(e);
+    alert('決済ページを開けませんでした。時間をおいてお試しください。');
+  }
+});
 
   } catch (err) {
     console.error('LIFF init error', err);
