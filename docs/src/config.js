@@ -6,3 +6,4 @@ export const siteBaseUrl        = 'https://pay.owara-kaze-no-bon.com';
 export const checkoutReturnPath = '/checkout/return.html';
 export const backendEndpoint = 'https://6j89814w74.execute-api.us-east-1.amazonaws.com/prod/pay-success';                                     // 今回未使用なら空でOK
 export const appEnv             = 'production';
+export const createCheckoutEndpoint = 'https://4l9edywnoc.execute-api.ap-northeast-1.amazonaws.com/prod/owara-kaze-no-bon-Univapay-create-checkout-api-lambda';
