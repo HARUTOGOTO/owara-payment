@@ -1,4 +1,4 @@
-import { liffIds, backendEndpoint } from './config.js';
+import { liffIds, backendEndpoint, createCheckoutEndpoint } from './config.js';
 
 // 設定
 const LIFF_IDS = JSON.parse(liffIds);
@@ -52,13 +52,12 @@ window.addEventListener('DOMContentLoaded', async () => {
       liff.ui?.setActionButton?.({ type: 'close' });
     }
 
-    // -------- ここが「復帰時ハンドラ」本体（この位置に置く）--------
-    // return.html → LIFF に戻ると、?ok=1&liffId=...&lu=...&state=... が付きます
+    // -------- 復帰時ハンドラ（B経路の保険）--------
     (async () => {
       const params = new URLSearchParams(location.search);
       const ok    = params.get('ok');        // 1=成功, 0=失敗, 2=保留
       const state = params.get('state') || '';
-      const lu    = params.get('lu') || '';  // Hosted に渡しておいた userId（保険）
+      const lu    = params.get('lu') || '';
 
       if (ok === '1') {
         const userForBackend = lu || lineUserId;
@@ -77,35 +76,37 @@ window.addEventListener('DOMContentLoaded', async () => {
           } catch (e) {
             console.error('paySuccess call failed', e);
           }
-        } else {
-          console.warn('No backendEndpoint or user id to notify.');
         }
-
-        // クエリを消して二重実行防止
         history.replaceState(null, '', location.pathname);
-
-        // LINE クライアントならトークへ戻す
-        if (liff.isInClient()) {
-          liff.closeWindow();
-          return; // 以降の処理は不要
-        }
+        if (liff.isInClient()) { liff.closeWindow(); return; }
       }
     })();
-    // -----------------------------------------------------------
+    // ----------------------------------------------
 
-    // 申込 → 外部 Hosted へ
-    $('applyBtn').addEventListener('click', () => {
-      const orderState = uuid();
-      const url = new URL('https://pay.owara-kaze-no-bon.com/checkout/index.html');
-      url.searchParams.set('amount', '100');
-      if (lineUserId) url.searchParams.set('lu', lineUserId);
-      url.searchParams.set('liffId', usedId);
-      url.searchParams.set('state', orderState);
-
-      if (liff.openWindow) {
-        liff.openWindow({ url: url.toString(), external: true });
-      } else {
-        location.href = url.toString();
+    // 申込 → /create-checkout を叩いて返ってきた Hosted URL を外部で開く（A-1）
+    $('applyBtn').addEventListener('click', async () => {
+      const language =
+        (liff.getLanguage?.() || navigator.language || 'ja').toLowerCase().startsWith('en')
+          ? 'en' : 'ja';
+      try {
+        const r = await fetch(createCheckoutEndpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            lineUserId: lineUserId,      // 取れない端末でもWebhook側で metadata から確定
+            amount: 100,
+            language,
+            planId: 'basic'
+          })
+        });
+        const data = await r.json();
+        const checkoutUrl = data.checkoutUrl || data.url;
+        if (!checkoutUrl) throw new Error('No checkoutUrl');
+        if (liff.openWindow) liff.openWindow({ url: checkoutUrl, external: true });
+        else location.href = checkoutUrl;
+      } catch (e) {
+        console.error(e);
+        alert('決済ページを開けませんでした。時間をおいてお試しください。');
       }
     });
 
