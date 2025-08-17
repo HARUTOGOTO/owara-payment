@@ -48,7 +48,9 @@ window.addEventListener('DOMContentLoaded', async () => {
       try {
         lineUserId = (await liff.getProfile())?.userId || null;
         if (lineUserId) status.textContent += ` | User: ${lineUserId}`;
-      } catch {}
+      } catch (e) {
+        console.warn('getProfile failed at init', e);
+      }
       liff.ui?.setActionButton?.({ type: 'close' });
     }
 
@@ -84,28 +86,65 @@ window.addEventListener('DOMContentLoaded', async () => {
     // ----------------------------------------------
 
     // 申込 → /create-checkout を叩いて返ってきた Hosted URL を外部で開く（A-1）
-$('applyBtn').addEventListener('click', async () => {
-  const language =
-    (liff.getLanguage?.() || navigator.language || 'ja').toLowerCase().startsWith('en') ? 'en' : 'ja';
-  try {
-    const r = await fetch(createCheckoutEndpoint, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        lineUserId: (await liff.getProfile())?.userId || null,
-        amount: 100,
-        language,
-        planId: 'basic'
-      })
+    $('applyBtn').addEventListener('click', async () => {
+      try {
+        // ① LIFF内以外は弾く（PC/外部ブラウザ）
+        if (!liff.isInClient()) {
+          alert('LINEアプリ内からお申込みください。トーク画面のメニューから開けます。');
+          console.warn('apply blocked: not in LIFF client');
+          return;
+        }
+
+        // ② userId 再取得（安全のため）
+        let uid = null;
+        try {
+          uid = (await liff.getProfile())?.userId || null;
+        } catch (e) {
+          console.error('getProfile failed at click', e);
+        }
+        if (!uid) {
+          alert('ユーザー情報の取得に失敗しました。LINEから開き直してください。');
+          return;
+        }
+
+        // ③ 言語判定
+        const language =
+          (liff.getLanguage?.() || navigator.language || 'ja')
+            .toLowerCase().startsWith('en') ? 'en' : 'ja';
+
+        // ④ /create-checkout 呼び出し
+        const r = await fetch(createCheckoutEndpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ lineUserId: uid, amount: 100, language, planId: 'basic' })
+        });
+
+        const text = await r.text();
+        let data = {};
+        try { data = JSON.parse(text); } catch {}
+        if (!r.ok) {
+          console.error('create-checkout non-2xx', r.status, text);
+          alert('決済ページを開けませんでした。（サーバ応答エラー）');
+          return;
+        }
+        const checkoutUrl = data.checkoutUrl;
+        if (!checkoutUrl) {
+          console.error('no checkoutUrl in response', text);
+          alert('決済ページを開けませんでした。（URL欠落）');
+          return;
+        }
+
+        // ⑤ 外部ブラウザでHostedへ
+        if (liff.openWindow) {
+          liff.openWindow({ url: checkoutUrl, external: true });
+        } else {
+          location.href = checkoutUrl;
+        }
+      } catch (e) {
+        console.error('apply click failed', e);
+        alert('決済ページを開けませんでした。時間をおいてお試しください。');
+      }
     });
-    const { checkoutUrl } = await r.json();
-    if (!checkoutUrl) throw new Error('No checkoutUrl');
-    liff.openWindow ? liff.openWindow({ url: checkoutUrl, external: true }) : (location.href = checkoutUrl);
-  } catch (e) {
-    console.error(e);
-    alert('決済ページを開けませんでした。時間をおいてお試しください。');
-  }
-});
 
   } catch (err) {
     console.error('LIFF init error', err);
