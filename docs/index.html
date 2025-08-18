@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="ja">
 <head>
@@ -22,72 +21,114 @@
   --safe-left  : env(safe-area-inset-left);
   font-size: 16px;
 }
+
 /* -------- ベースレイアウト -------- */
 html,body{
-  height:100%;margin:0;padding:0;
+  height:100%;
+  min-height:100dvh;                 /* 動的vhでヘッダ表示時も安定 */
+  margin:0;padding:0;
   background:var(--base) url("data:image/svg+xml,%3Csvg width='60' height='60' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 0h60v60H0z' fill='%230d2847'/%3E%3Cpath d='M0 30l30-30h30v30l-30 30H0V30z' fill='%23123147' opacity='.12'/%3E%3C/svg%3E") repeat;
   color:var(--text);
   font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Noto Sans JP',sans-serif;
-  padding:var(--safe-top) var(--safe-right) var(--safe-bottom) var(--safe-left);
+  padding:calc(var(--safe-top) + 6px) var(--safe-right) calc(var(--safe-bottom) + 6px) var(--safe-left);
   display:flex;justify-content:flex-start;align-items:center;flex-direction:column;
   overflow-x:hidden;
 }
+
 h1{
-  font-size:2.2rem;font-weight:700;margin:1.2rem 0 1.2rem;text-align:center;
-  letter-spacing:.05em;
+  /* 画面幅に応じて縮む見出し */
+  font-size:clamp(1.6rem, 5vw, 2rem);
+  font-weight:700;
+  margin:0.8rem 0 0.8rem;
+  text-align:center;
+  letter-spacing:.04em;
 }
+
 /* -------- コンテンツカード -------- */
 .card{
-  width:90%;max-width:680px;
+  width:92%;max-width:680px;
   background:var(--card);
   border-radius:1rem;
-  padding:1.8rem 1.6rem;
+  padding:1.2rem 1rem;             /* 余白を圧縮 */
   box-sizing:border-box;
-  display:flex;flex-direction:column;gap:1.2rem;
+  display:flex;flex-direction:column;gap:.9rem; /* 行間をタイトに */
 }
+
 ul.services{
-  list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:1.2rem;
+  list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:.9rem;
 }
 ul.services li{
-  display:flex;flex-direction:column;line-height:1.4;
+  display:flex;flex-direction:column;line-height:1.35;
 }
 ul.services li .title{
-  font-size:1.2rem;font-weight:600;display:flex;align-items:center;gap:.6rem;
+  font-size:clamp(1.0rem, 3.7vw, 1.15rem);
+  font-weight:700;display:flex;align-items:center;gap:.5rem;
 }
-ul.services li .desc{font-size:.9rem;color:#d0dbec;margin-left:2rem;}
-/* チェックマーク（SVG アイコンを pseudo で） */
+ul.services li .desc{
+  font-size:clamp(.82rem, 3.2vw, .92rem);
+  color:#d0dbec;margin-left:1.8rem;margin-top:.2rem;
+}
+
+/* チェックマーク（見た目そのまま軽量に） */
 ul.services li .title::before{
   content:"";
-  width:1.4rem;height:1.4rem;min-width:1.4rem;
+  width:1.1rem;height:1.1rem;min-width:1.1rem;
   background:var(--text);border-radius:50%;
   display:inline-block;position:relative;
 }
 ul.services li .title::after{
   content:"";
-  position:absolute;left:0;top:0;width:1.4rem;height:1.4rem;
-  background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M9.8 17.6L4.6 12.4 3 14l6.8 6.8L21 9.6 19.4 8z' fill='%230d2847'/%3E%3C/svg%3E") center/0.9rem no-repeat;
+  position:absolute;left:0;top:0;width:1.1rem;height:1.1rem;
+  background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M9.8 17.6L4.6 12.4 3 14l6.8 6.8L21 9.6 19.4 8z' fill='%230d2847'/%3E%3C/svg%3E") center/.75rem no-repeat;
 }
+
 /* -------- 価格エリア -------- */
 .price{
-  margin-top:2rem;text-align:center;line-height:1.6;font-size:1rem;
+  margin-top:1.0rem;               /* 少し詰める */
+  text-align:center;line-height:1.5;font-size:clamp(.9rem, 3.3vw, 1rem);
 }
-.price span{display:block;}
+.price span{display:block;margin:.05rem 0;}
+.price a{display:inline-block;margin-top:.2rem;}
+
 /* -------- ボタン -------- */
 #applyBtn{
-  width:90%;max-width:680px;margin:2rem auto 1rem;
+  width:92%;max-width:680px;margin:1rem auto .6rem;
   background:var(--accent);color:var(--base);
-  font-size:1.3rem;font-weight:700;
-  border:none;border-radius:1rem;padding:1rem 0;cursor:pointer;
+  font-size:clamp(1.05rem, 4vw, 1.2rem);
+  font-weight:800;
+  border:none;border-radius:.9rem;padding:.85rem 0;cursor:pointer;
 }
 #applyBtn:disabled{opacity:.5;cursor:default}
-/* -------- ステータス -------- */
+
+/* -------- ステータス（固定表示にし、レイアウト高さに影響させない） -------- */
 #status{
-  margin-top:1rem;font-size:.85rem;background:#ffffff22;border-radius:.5rem;
-  padding:.4rem .9rem;display:none;text-align:center;
+  position:fixed;
+  left:50%;
+  bottom:calc(var(--safe-bottom) + 8px);
+  transform:translateX(-50%);
+  max-width:92%;
+  font-size:.8rem;
+  background:#00000055;
+  color:#fff;
+  border-radius:.6rem;
+  padding:.35rem .7rem;
+  display:none;
+  text-align:center;
+  z-index:9999;
+  backdrop-filter:saturate(120%) blur(6px);
+  pointer-events:none;              /* タップを邪魔しない */
 }
+
 /* Landscape SafeArea */
 @media (orientation:landscape){
   html,body{padding:0 44px 21px;}
+}
+
+/* さらに小さい端末向け微調整（iPhone SE 等） */
+@media (max-width:360px){
+  .card{padding:1rem .9rem;gap:.75rem;}
+  .price{font-size:.88rem;}
+  #applyBtn{padding:.8rem 0;}
 }
 </style>
 </head>
@@ -141,6 +182,7 @@ ul.services li .title::after{
 
 <button id="applyBtn" style="display:none" disabled>お申込みはこちらから！</button>
 
+<!-- これは固定表示なのでレイアウトを押し下げません -->
 <div id="status"></div>
 
 <script type="module" src="./src/main.js"></script>
