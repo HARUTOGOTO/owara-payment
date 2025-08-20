@@ -1,39 +1,55 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="ja">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>処理しています…</title>
-<style>
-  body{font-family:-apple-system,BlinkMacSystemFont,"Noto Sans JP",sans-serif;margin:0;padding:24px;text-align:center}
-  .btn{display:inline-block;margin-top:16px;padding:10px 16px;border-radius:10px;background:#0d6efd;color:#fff;text-decoration:none}
-  .note{color:#666;margin-top:12px}
-</style>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <title>決済が完了しました</title>
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+  <style>
+    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;margin:0;padding:24px;text-align:center;background:#fafafa}
+    .card{max-width:520px;margin:0 auto;background:#fff;border-radius:12px;box-shadow:0 10px 24px rgba(0,0,0,.08);padding:28px}
+    h1{font-size:1.4rem;margin:0 0 6px}
+    p{margin:6px 0 16px;color:#444}
+    .btn{display:inline-block;padding:12px 18px;border-radius:10px;text-decoration:none;border:0;background:#06c;color:#fff;font-weight:600}
+    .sub{font-size:.88rem;color:#666;margin-top:8px}
+  </style>
 </head>
 <body>
-  <h1 id="h">LINE に戻っています…</h1>
-  <p class="note" id="m">自動で戻らない場合は下のボタンを押してください。</p>
-  <a id="back" class="btn">LINE に戻る</a>
+  <div class="card">
+    <h1>決済が完了しました</h1>
+    <p id="msg">有料メニューを適用中です。数秒でLINEに戻ります…</p>
+    <a id="openLine" class="btn" href="#" style="display:none">LINEを開く</a>
+    <div class="sub">戻らない場合はボタンを押してください。</div>
+  </div>
 
-<script>
-(function(){
-  const q = new URLSearchParams(location.search);
-  const liffId = q.get("liffId") || "";   // ← liffIds → liffId に修正（必須）
+  <script>
+    (async () => {
+      const OFFICIAL_URL = 'https://line.me/R/ti/p/@225hkxvw'; // ← 公式LINE
+      const LIFF_ID = '<YOUR_LIFF_ID>';                       // ← 審査/本番の LIFF ID を入れる
 
-  if (!liffId) {
-    document.getElementById("h").textContent = "LINE に戻れませんでした";
-    document.getElementById("m").textContent = "この画面を閉じ、LINEトークからもう一度お試しください。";
-    document.getElementById("back").style.display = "none";
-    return;
-  }
+      const openLine = () => {
+        try { if (window.liff?.isInClient()) return liff.closeWindow(); } catch(e){}
+        location.href = OFFICIAL_URL; // 外部ブラウザ/PayPay内など
+      };
 
-  const back = new URL(`https://liff.line.me/${encodeURIComponent(liffId)}`);
-  for (const [k,v] of q.entries()) back.searchParams.set(k, v);
+      const btn = document.getElementById('openLine');
+      btn.addEventListener('click', openLine);
 
-  const href = back.toString();
-  document.getElementById("back").href = href;
-  setTimeout(() => location.replace(href), 300);  // 履歴を汚さない
-})();
-</script>
+      try { await liff.init({ liffId: LIFF_ID }); } catch(e) { /* 無視 */ }
+
+      // Webhook→paySuccess が Link を完了させる猶予
+      await new Promise(r => setTimeout(r, 1200));
+
+      // 自動でLINEへ戻す（LINE内=close / 外部=ディープリンク）
+      openLine();
+
+      // 自動復帰できない環境向けのフォールバックUI
+      setTimeout(() => {
+        document.getElementById('msg').textContent = '自動で戻れない場合は、以下のボタンからLINEを開いてください。';
+        btn.style.display = 'inline-block';
+        btn.href = OFFICIAL_URL;
+      }, 1600);
+    })();
+  </script>
 </body>
 </html>
