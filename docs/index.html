@@ -101,7 +101,8 @@ ul.services li .title::after{
 #applyBtn:disabled{opacity:.5;cursor:default}
 
 /* -------- ステータス（固定表示にし、レイアウト高さに影響させない） -------- */
-#status{
+/*
+  #status{
   position:fixed;
   left:50%;
   bottom:calc(var(--safe-bottom) + 8px);
@@ -116,8 +117,9 @@ ul.services li .title::after{
   text-align:center;
   z-index:9999;
   backdrop-filter:saturate(120%) blur(6px);
-  pointer-events:none;              /* タップを邪魔しない */
+  pointer-events:none;            
 }
+/*
 
 /* Landscape SafeArea */
 @media (orientation:landscape){
@@ -183,7 +185,8 @@ ul.services li .title::after{
 <button id="applyBtn" style="display:none" disabled>お申込みはこちらから！</button>
 
 <!-- これは固定表示なのでレイアウトを押し下げません -->
-<div id="status"></div>
+
+<!-- <div id="status"></div> -->
 
 <script type="module" src="./src/main.js"></script>
 
