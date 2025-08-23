@@ -55,52 +55,30 @@ h1{
   display:flex;flex-direction:column;gap:.9rem; /* 行間をタイトに */
 }
 
+/* -------- サービス一覧 -------- */
 ul.services{
+  list-style:none;                 /* デフォルトの「・」を削除 */
+  padding-left:0;
   display:grid;
-  grid-template-columns:1fr;  /* デフォルト1列 */
+  grid-template-columns:1fr;       /* デフォルト1列 */
   gap:1rem .9rem;
 }
 @media (min-width:520px){
-  ul.services{ grid-template-columns:1fr 1fr; }
+  ul.services{ grid-template-columns:1fr 1fr; }  /* 画面が広ければ2列 */
 }
-/* 3) バレットのズレ修正：.title を基準に疑似要素を絶対配置 */
+ul.services li{
+  display:flex;flex-direction:column;line-height:1.35;
+}
 ul.services li .title{
-  position:relative;          /* ←これがポイント */
+  /* 疑似要素を使わないのでインデント不要 */
   display:block;
-  padding-left:1.6rem;        /* バレット分の余白を確保 */
-  line-height:1.35;
-}
-
-/* 左の白丸（ベース） */
-ul.services li .title::before{
-  content:"";
-  position:absolute; left:0; top:.15rem;
-  width:1.1rem; height:1.1rem;
-  background:#fff; border-radius:50%;
-}
-
-/* 白丸の上にチェックを重ねる */
-ul.services li .title::after{
-  content:"";
-  position:absolute; left:0; top:.15rem;
-  width:1.1rem; height:1.1rem;
-  background:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.8 17.6L4.6 12.4 3 14l6.8 6.8L21 9.6 19.4 8z" fill="%230d2847"/></svg>') center/.75rem no-repeat;
+  font-size:clamp(1.0rem, 3.7vw, 1.15rem);
+  font-weight:700;
 }
 ul.services li .desc{
-  margin:.2rem 0 0 1.6rem;
-}
-
-/* チェックマーク（見た目そのまま軽量に） */
-ul.services li .title::before{
-  content:"";
-  width:1.1rem;height:1.1rem;min-width:1.1rem;
-  background:var(--text);border-radius:50%;
-  display:inline-block;position:relative;
-}
-ul.services li .title::after{
-  content:"";
-  position:absolute;left:0;top:0;width:1.1rem;height:1.1rem;
-  background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M9.8 17.6L4.6 12.4 3 14l6.8 6.8L21 9.6 19.4 8z' fill='%230d2847'/%3E%3C/svg%3E") center/.75rem no-repeat;
+  font-size:clamp(.82rem, 3.2vw, .92rem);
+  color:#d0dbec;
+  margin:.2rem 0 0 0;             /* 左マージンなしで揃える */
 }
 
 /* -------- 価格エリア -------- */
@@ -108,7 +86,7 @@ ul.services li .title::after{
   margin-top:1.0rem;               /* 少し詰める */
   text-align:center;line-height:1.5;font-size:clamp(.9rem, 3.3vw, 1rem);
   width:96%;
-  max-width:960px;               /* ← 追加 */
+  max-width:960px;
   margin-left:auto;margin-right:auto;
 }
 .price span{display:block;margin:.05rem 0;}
@@ -126,7 +104,7 @@ ul.services li .title::after{
 }
 #applyBtn:disabled{opacity:.5;cursor:default}
 
-/* -------- ステータス（固定表示にし、レイアウト高さに影響させない） -------- */
+/* -------- ステータス -------- */
 #status{
   position:fixed;
   left:50%;
@@ -138,11 +116,11 @@ ul.services li .title::after{
   color:#fff;
   border-radius:.6rem;
   padding:.35rem .7rem;
-  display:none;
+  display:none;                     /* DEBUG=false なら表示されない */
   text-align:center;
   z-index:9999;
   backdrop-filter:saturate(120%) blur(6px);
-  pointer-events:none;            
+  pointer-events:none;
 }
 
 /* Landscape SafeArea */
@@ -155,10 +133,6 @@ ul.services li .title::after{
   .card{padding:1rem .9rem;gap:.75rem;}
   .price{font-size:.88rem;}
   #applyBtn{padding:.8rem 0;}
-}
-  
-@media (min-width:520px){        /* 画面が広ければ2列に */
-  ul.services{ grid-template-columns:1fr 1fr; }
 }
 </style>
 </head>
@@ -180,23 +154,23 @@ ul.services li .title::after{
     </li>
     <li>
       <span class="title">踊っている場所が分かる(一部)</span>
-      <span class="desc">GPSを用いて現在の踊りの位置を表示</span>
+      <span class="desc">GPSを用いて現在の演者の位置を表示</span>
     </li>
     <li>
       <span class="title">見どころ / ルートマップ</span>
-      <span class="desc">効率よく回れるおすすめルート</span>
+      <span class="desc">お勧めの楽しみ方のルート</span>
     </li>
     <li>
       <span class="title">おわらの真髄に迫る記事・動画</span>
-      <span class="desc">300 年の歴史と伝統を深掘り</span>
+      <span class="desc">300年の歴史と伝統を深掘り</span>
     </li>
     <li>
       <span class="title">限定グッズ</span>
-      <span class="desc">祭りを楽しむ限定アイテム</span>
+      <span class="desc">ここでしか買えないおわらの香り</span>
     </li>
     <li>
       <span class="title">綺麗な写真スポット</span>
-      <span class="desc">とっておきのロケーションを紹介</span>
+      <span class="desc">綺麗な写真を撮影できる場所</span>
     </li>
   </ul>
 </div>
@@ -212,8 +186,7 @@ ul.services li .title::after{
 
 <button id="applyBtn" style="display:none" disabled>お申込みはこちらから！</button>
 
-<!-- これは固定表示なのでレイアウトを押し下げません -->
-
+<!-- デバッグ用トースト（DEBUG=falseなら表示されません） -->
 <div id="status"></div>
 
 <script type="module" src="./src/main.js"></script>
