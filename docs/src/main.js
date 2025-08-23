@@ -1,5 +1,18 @@
 import { liffIds, backendEndpoint, createCheckoutEndpoint } from './config.js';
 
+// ================== 追加：本番ではデバッグ非表示 ==================
+const DEBUG = false; // ←必要なときだけ true にすると下部トーストが出る
+function setStatus(msg, ttl = 4000) {
+  if (!DEBUG) return;                 // 本番は何も表示しない
+  const el = document.getElementById('status');
+  if (!el) return;
+  el.textContent = msg;
+  el.style.display = 'block';
+  clearTimeout(setStatus._t);
+  setStatus._t = setTimeout(() => (el.style.display = 'none'), ttl);
+}
+// =================================================================
+
 // 設定
 const LIFF_IDS = JSON.parse(liffIds);
 
@@ -27,8 +40,6 @@ async function initLIFF() {
 }
 
 window.addEventListener('DOMContentLoaded', async () => {
-  const status = $('status');
-
   try {
     const usedId = await initLIFF();
     await liff.ready;
@@ -40,14 +51,15 @@ window.addEventListener('DOMContentLoaded', async () => {
     $('price').style.display    = 'block';
     $('applyBtn').style.display = 'block';
     $('applyBtn').disabled      = false;
-    status.style.display        = 'block';
-    status.textContent          = `LIFF ID: ${usedId} で初期化完了`;
+
+    // デバッグ用のみ表示（本番は出ない）
+    setStatus(`LIFF ID: ${usedId} で初期化完了`);
 
     // ユーザーID（LIFF内のみ取得）
     if (liff.isInClient()) {
       try {
         lineUserId = (await liff.getProfile())?.userId || null;
-        if (lineUserId) status.textContent += ` | User: ${lineUserId}`;
+        if (lineUserId) setStatus(`LIFF ID: ${usedId} | User: ${lineUserId}`);
       } catch (e) {
         console.warn('getProfile failed at init', e);
       }
@@ -149,8 +161,13 @@ window.addEventListener('DOMContentLoaded', async () => {
   } catch (err) {
     console.error('LIFF init error', err);
     $('loader').style.display = 'none';
-    status.style.display = 'block';
-    status.textContent = 'LIFF 初期化失敗: ' + err.message;
+    // 本番はalertで通知、デバッグ時のみ画面下に表示
+    if (DEBUG) {
+      const s = $('status');
+      if (s) { s.style.display = 'block'; s.textContent = 'LIFF 初期化失敗: ' + err.message; }
+    } else {
+      alert('LIFFの初期化に失敗しました。LINEアプリから開き直してください。');
+    }
     $('applyBtn').style.display = 'block';
     $('applyBtn').disabled = false;
   }
