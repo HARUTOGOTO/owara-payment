@@ -46,7 +46,8 @@ h1{
 
 /* -------- コンテンツカード -------- */
 .card{
-  width:92%;max-width:680px;
+  width:96%;
+  max-width:960px;
   background:var(--card);
   border-radius:1rem;
   padding:1.2rem 1rem;             /* 余白を圧縮 */
@@ -62,7 +63,7 @@ ul.services li{
 }
 ul.services li .title{
   font-size:clamp(1.0rem, 3.7vw, 1.15rem);
-  font-weight:700;display:flex;align-items:center;gap:.5rem;
+  font-weight:700;display:grid;grid-template-columns:1fr;gap:.5rem;
 }
 ul.services li .desc{
   font-size:clamp(.82rem, 3.2vw, .92rem);
@@ -86,13 +87,18 @@ ul.services li .title::after{
 .price{
   margin-top:1.0rem;               /* 少し詰める */
   text-align:center;line-height:1.5;font-size:clamp(.9rem, 3.3vw, 1rem);
+  width:96%;
+  max-width:960px;               /* ← 追加 */
+  margin-left:auto;margin-right:auto;
 }
 .price span{display:block;margin:.05rem 0;}
 .price a{display:inline-block;margin-top:.2rem;}
 
 /* -------- ボタン -------- */
 #applyBtn{
-  width:92%;max-width:680px;margin:1rem auto .6rem;
+  width:96%;
+  max-width:960px;
+  margin:1rem auto .6rem;
   background:var(--accent);color:var(--base);
   font-size:clamp(1.05rem, 4vw, 1.2rem);
   font-weight:800;
@@ -129,6 +135,10 @@ ul.services li .title::after{
   .card{padding:1rem .9rem;gap:.75rem;}
   .price{font-size:.88rem;}
   #applyBtn{padding:.8rem 0;}
+}
+  
+@media (min-width:520px){        /* 画面が広ければ2列に */
+  ul.services{ grid-template-columns:1fr 1fr; }
 }
 </style>
 </head>
