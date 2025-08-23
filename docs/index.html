@@ -9,130 +9,77 @@
 <script src="https://static.line-scdn.net/liff/edge/2/sdk.js" defer></script>
 
 <style>
-/* -------- 共通変数 -------- */
 :root{
-  --accent: #d7e4ff;          /* 水色ボタン */
-  --base  : #0d2847;          /* 紺色背景 */
-  --card  : #0f2e56;          /* ネイビーのカード */
-  --text  : #ffffff;
-  --safe-top   : env(safe-area-inset-top);
-  --safe-right : env(safe-area-inset-right);
-  --safe-bottom: env(safe-area-inset-bottom);
-  --safe-left  : env(safe-area-inset-left);
-  font-size: 16px;
+  --accent:#d7e4ff; --base:#0d2847; --card:#0f2e56; --text:#fff;
+  --safe-top:env(safe-area-inset-top); --safe-right:env(safe-area-inset-right);
+  --safe-bottom:env(safe-area-inset-bottom); --safe-left:env(safe-area-inset-left);
+  font-size:16px;
 }
-
-/* -------- ベースレイアウト -------- */
 html,body{
-  height:100%;
-  min-height:100dvh;                 /* 動的vhでヘッダ表示時も安定 */
-  margin:0;padding:0;
+  height:100%; min-height:100dvh; margin:0; padding:calc(var(--safe-top)+6px) var(--safe-right) calc(var(--safe-bottom)+6px) var(--safe-left);
   background:var(--base) url("data:image/svg+xml,%3Csvg width='60' height='60' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 0h60v60H0z' fill='%230d2847'/%3E%3Cpath d='M0 30l30-30h30v30l-30 30H0V30z' fill='%23123147' opacity='.12'/%3E%3C/svg%3E") repeat;
-  color:var(--text);
-  font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Noto Sans JP',sans-serif;
-  padding:calc(var(--safe-top) + 6px) var(--safe-right) calc(var(--safe-bottom) + 6px) var(--safe-left);
-  display:flex;justify-content:flex-start;align-items:center;flex-direction:column;
-  overflow-x:hidden;
+  color:var(--text); font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Noto Sans JP',sans-serif;
+  display:flex; flex-direction:column; align-items:center; overflow-x:hidden;
 }
+h1{ font-size:clamp(1.6rem,5vw,2rem); font-weight:700; margin:.8rem 0; text-align:center; letter-spacing:.04em; }
 
-h1{
-  /* 画面幅に応じて縮む見出し */
-  font-size:clamp(1.6rem, 5vw, 2rem);
-  font-weight:700;
-  margin:0.8rem 0 0.8rem;
-  text-align:center;
-  letter-spacing:.04em;
-}
-
-/* -------- コンテンツカード -------- */
+/* カードはワイド維持 */
 .card{
-  width:96%;
-  max-width:960px;
-  background:var(--card);
-  border-radius:1rem;
-  padding:1.2rem 1rem;             /* 余白を圧縮 */
-  box-sizing:border-box;
-  display:flex;flex-direction:column;gap:.9rem; /* 行間をタイトに */
+  width:96%; max-width:960px; background:var(--card); border-radius:1rem;
+  padding:1.2rem 1rem; box-sizing:border-box; display:flex; flex-direction:column; gap:.9rem;
 }
 
-/* -------- サービス一覧 -------- */
+/* --- サービス一覧（小さな箇条書きは残す） --- */
 ul.services{
-  list-style:none;                 /* デフォルトの「・」を削除 */
-  padding-left:0;
-  display:grid;
-  grid-template-columns:1fr;       /* デフォルト1列 */
-  gap:1rem .9rem;
+  list-style:disc;               /* 小さい「・」を表示 */
+  list-style-position:inside;    /* 左インデントを増やさない */
+  padding-left:0; margin:0;
+  display:grid; grid-template-columns:1fr; gap:1rem .9rem;
 }
-@media (min-width:520px){
-  ul.services{ grid-template-columns:1fr 1fr; }  /* 画面が広ければ2列 */
-}
-ul.services li{
-  display:flex;flex-direction:column;line-height:1.35;
-}
+@media (min-width:520px){ ul.services{ grid-template-columns:1fr 1fr; } }
+
+/* li は list-item のまま（マーカーが消えないように） */
+ul.services li{ display:list-item; }
+
+/* 見出しと説明はブロックで縦並び */
 ul.services li .title{
-  /* 疑似要素を使わないのでインデント不要 */
-  display:block;
-  font-size:clamp(1.0rem, 3.7vw, 1.15rem);
-  font-weight:700;
+  display:block; font-size:clamp(1.0rem,3.7vw,1.15rem); font-weight:700; line-height:1.35; margin:0;
 }
 ul.services li .desc{
-  font-size:clamp(.82rem, 3.2vw, .92rem);
-  color:#d0dbec;
-  margin:.2rem 0 0 0;             /* 左マージンなしで揃える */
+  display:block; font-size:clamp(.82rem,3.2vw,.92rem); color:#d0dbec; margin:.2rem 0 0 0;
 }
 
-/* -------- 価格エリア -------- */
+/* 以前の大きい白丸・チェック疑似要素を完全無効化 */
+ul.services li .title::before,
+ul.services li .title::after{ content:none !important; }
+
+/* 価格エリア＆ボタン（ワイド維持） */
 .price{
-  margin-top:1.0rem;               /* 少し詰める */
-  text-align:center;line-height:1.5;font-size:clamp(.9rem, 3.3vw, 1rem);
-  width:96%;
-  max-width:960px;
-  margin-left:auto;margin-right:auto;
+  margin-top:1.0rem; text-align:center; line-height:1.5; font-size:clamp(.9rem,3.3vw,1rem);
+  width:96%; max-width:960px; margin-left:auto; margin-right:auto;
 }
-.price span{display:block;margin:.05rem 0;}
-.price a{display:inline-block;margin-top:.2rem;}
+.price span{ display:block; margin:.05rem 0; }
+.price a{ display:inline-block; margin-top:.2rem; }
 
-/* -------- ボタン -------- */
 #applyBtn{
-  width:96%;
-  max-width:960px;
-  margin:1rem auto .6rem;
-  background:var(--accent);color:var(--base);
-  font-size:clamp(1.05rem, 4vw, 1.2rem);
-  font-weight:800;
-  border:none;border-radius:.9rem;padding:.85rem 0;cursor:pointer;
+  width:96%; max-width:960px; margin:1rem auto .6rem;
+  background:var(--accent); color:var(--base); font-size:clamp(1.05rem,4vw,1.2rem);
+  font-weight:800; border:none; border-radius:.9rem; padding:.85rem 0; cursor:pointer;
 }
-#applyBtn:disabled{opacity:.5;cursor:default}
+#applyBtn:disabled{ opacity:.5; cursor:default; }
 
-/* -------- ステータス -------- */
+/* ステータス（DEBUG=falseならJS側で表示しない） */
 #status{
-  position:fixed;
-  left:50%;
-  bottom:calc(var(--safe-bottom) + 8px);
-  transform:translateX(-50%);
-  max-width:92%;
-  font-size:.8rem;
-  background:#00000055;
-  color:#fff;
-  border-radius:.6rem;
-  padding:.35rem .7rem;
-  display:none;                     /* DEBUG=false なら表示されない */
-  text-align:center;
-  z-index:9999;
-  backdrop-filter:saturate(120%) blur(6px);
-  pointer-events:none;
+  position:fixed; left:50%; bottom:calc(var(--safe-bottom)+8px); transform:translateX(-50%);
+  max-width:92%; font-size:.8rem; background:#00000055; color:#fff; border-radius:.6rem;
+  padding:.35rem .7rem; display:none; text-align:center; z-index:9999; backdrop-filter:saturate(120%) blur(6px); pointer-events:none;
 }
 
-/* Landscape SafeArea */
-@media (orientation:landscape){
-  html,body{padding:0 44px 21px;}
-}
-
-/* さらに小さい端末向け微調整（iPhone SE 等） */
+@media (orientation:landscape){ html,body{ padding:0 44px 21px; } }
 @media (max-width:360px){
-  .card{padding:1rem .9rem;gap:.75rem;}
-  .price{font-size:.88rem;}
-  #applyBtn{padding:.8rem 0;}
+  .card{ padding:1rem .9rem; gap:.75rem; }
+  .price{ font-size:.88rem; }
+  #applyBtn{ padding:.8rem 0; }
 }
 </style>
 </head>
@@ -186,10 +133,7 @@ ul.services li .desc{
 
 <button id="applyBtn" style="display:none" disabled>お申込みはこちらから！</button>
 
-<!-- デバッグ用トースト（DEBUG=falseなら表示されません） -->
 <div id="status"></div>
-
 <script type="module" src="./src/main.js"></script>
-
 </body>
 </html>
