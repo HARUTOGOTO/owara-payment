@@ -1,3 +1,4 @@
+<!-- C:\Users\gotou\owara-payment\docs\v2\index.html -->
 <!DOCTYPE html>
 <html lang="ja">
 <head>
@@ -72,7 +73,7 @@
 
   <!-- ローディング -->
   <div id="loader" style="margin-top:40vh;text-align:center">
-    <img src="./LINE_spinner_light.svg" alt="loading" class="loader" width="30" height="30">
+    <img src="../LINE_spinner_light.svg" alt="loading" class="loader" width="30" height="30">
   </div>
 
   <!-- メインUI -->
@@ -119,6 +120,44 @@
   <button id="applyBtn" style="display:none" disabled>お申込みはこちらから！</button>
 
   <div id="status"></div>
-  <script type="module" src="./src/main.js?v=20250824-165000"></script>
+<script>
+  (function () {
+    const qs    = new URLSearchParams(location.search);
+    const cb    = qs.get('cb') || Date.now().toString();
+    const debug = qs.get('debug') === '1';
+
+    // 画面下に簡易ログ（?debug=1 の時だけ表示）
+    const log = (msg) => {
+      if (!debug) return;
+      let s = document.getElementById('status');
+      if (!s) {
+        s = document.createElement('div');
+        s.id = 'status';
+        s.style.cssText =
+          'position:fixed;left:50%;bottom:8px;transform:translateX(-50%);' +
+          'max-width:92%;font-size:12px;background:#0008;color:#fff;' +
+          'border-radius:6px;padding:6px 10px;z-index:9999';
+        document.body.appendChild(s);
+      }
+      s.style.display = 'block';
+      s.textContent = msg;
+    };
+
+    // JSエラーも拾って表示
+    window.addEventListener('error', (e) => log('ERR: ' + (e.message || e)));
+
+    // DOM 構築完了後に module を読み込む（＝deferの LIFF SDK が先に走る）
+    window.addEventListener('DOMContentLoaded', () => {
+      if (!window.liff) log('LIFF SDK not ready yet…');
+
+      const s = document.createElement('script');
+      s.type  = 'module';
+      s.src   = `./src/main.v2.js?cb=${cb}`;
+      s.onload  = () => log('main.v2.js loaded (cb=' + cb + ')');
+      s.onerror = () => log('failed loading main.v2.js');
+      document.body.appendChild(s);
+    });
+  })();
+</script>
 </body>
 </html>
