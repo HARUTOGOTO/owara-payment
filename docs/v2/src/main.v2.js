@@ -1,5 +1,5 @@
 // docs/v2/src/main.v2.js
-// v2：LIFF → /checkout ブリッジ固定。configは ?cb= 付きで確実に最新を読む。
+// v2：LIFF → /checkout（ブリッジ）固定。サーバの create-checkout で発行した URL を /checkout に渡す。
 
 (() => {
   const $ = (id) => document.getElementById(id);
@@ -17,7 +17,6 @@
   const uuid = () =>
     (crypto.randomUUID?.() || (Date.now().toString(36) + Math.random().toString(36).slice(2, 10))).toUpperCase();
 
-  // グローバルエラーも可視化（?debug=1 のとき）
   addEventListener('error', (e) => setStatus('ERR: ' + (e?.message || e)));
   addEventListener('unhandledrejection', (e) => setStatus('REJ: ' + (e?.reason?.message || e?.reason || 'unhandled')));
 
@@ -68,7 +67,6 @@
         const lu    = p.get('lu') || '';
 
         if (ok === '1') {
-          // 追加通知したいときだけ backendEndpoint を使う（無ければスキップ）
           const userForBackend = lu || (liff.isInClient() ? (await liff.getProfile().catch(()=>null))?.userId : null);
           if (cfg.backendEndpoint && userForBackend) {
             try {
@@ -85,32 +83,54 @@
         }
       })();
 
-      // --- 5) 申込 → /checkout ブリッジへ（常時 this flow） ---
+      // --- 5) 申込 → create-checkout → /checkout?co=... 経由で開く ---
       $('applyBtn').addEventListener('click', async () => {
         try {
           if (!liff.isInClient()) {
             alert('LINEアプリ内からお申込みください。トーク画面のメニューから開けます。');
             return;
           }
+
           let uid = null;
           try { uid = (await liff.getProfile())?.userId || null; } catch {}
           if (!uid) { alert('ユーザー情報の取得に失敗しました。LINEから開き直してください。'); return; }
 
-          const amount = 100;              // 必要ならUIから取得して置換
-          const state  = uuid();
+          const language = (liff.getLanguage?.() || navigator.language || 'ja')
+            .toLowerCase().startsWith('en') ? 'en' : 'ja';
+
+          if (!cfg.createCheckoutEndpoint) {
+            alert('設定エラー：createCheckoutEndpoint が未設定です（config.v2.js）');
+            return;
+          }
+
+          const r = await fetch(cfg.createCheckoutEndpoint, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ lineUserId: uid, amount: 100, language, planId: 'basic' })
+          });
+
+          const text = await r.text();
+          let data = {}; try { data = JSON.parse(text); } catch {}
+          if (!r.ok || !data.checkoutUrl) {
+            console.error('create-checkout error', r.status, text);
+            alert('決済ページを開けませんでした。（URL発行エラー）');
+            return;
+          }
+
+          const state = uuid();
           const params = new URLSearchParams({
-            amount: String(amount),
+            co: data.checkoutUrl,            // ★ サーバ発行URLを /checkout に渡す
             liffId: usedId,
             lu: uid,
             state,
-            debug: DEBUG ? '1' : '0',
+            debug: DEBUG ? '1' : '0'
           });
 
-          // /checkout を“外部ブラウザ”で開く（/checkout→UnivaPay は location.href で履歴を残す）
           const bridge = `${cfg.siteBaseUrl}/checkout/index.html?${params.toString()}`;
           setStatus('open bridge: ' + bridge);
           if (liff.openWindow) liff.openWindow({ url: bridge, external: true });
           else location.href = bridge;
+
         } catch (e) {
           console.error('apply click failed', e);
           alert('決済ページを開けませんでした。時間をおいてお試しください。');
