@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+<title>おわら風の盆｜有料メニュー決済 (LIFF)</title>
+
+<!-- LIFF SDK -->
+<script src="https://static.line-scdn.net/liff/edge/2/sdk.js" defer></script>
+
+<style>
+:root{
+  --accent:#d7e4ff; --base:#0d2847; --card:#0f2e56; --text:#fff;
+  --safe-top:env(safe-area-inset-top); --safe-right:env(safe-area-inset-right);
+  --safe-bottom:env(safe-area-inset-bottom); --safe-left:env(safe-area-inset-left);
+  font-size:16px;
+}
+html,body{
+  height:100%; min-height:100dvh; margin:0; padding:calc(var(--safe-top)+6px) var(--safe-right) calc(var(--safe-bottom)+6px) var(--safe-left);
+  background:var(--base) url("data:image/svg+xml,%3Csvg width='60' height='60' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 0h60v60H0z' fill='%230d2847'/%3E%3Cpath d='M0 30l30-30h30v30l-30 30H0V30z' fill='%23123147' opacity='.12'/%3E%3C/svg%3E") repeat;
+  color:var(--text); font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Noto Sans JP',sans-serif;
+  display:flex; flex-direction:column; align-items:center; overflow-x:hidden;
+}
+h1{ font-size:clamp(1.6rem,5vw,2rem); font-weight:700; margin:.8rem 0; text-align:center; letter-spacing:.04em; }
+
+/* カードはワイド維持 */
+.card{
+  width:96%; max-width:960px; background:var(--card); border-radius:1rem;
+  padding:1.2rem 1rem; box-sizing:border-box; display:flex; flex-direction:column; gap:.9rem;
+}
+
+/* --- サービス一覧（小さな箇条書きは残す） --- */
+ul.services{
+  list-style:disc;               /* 小さい「・」を表示 */
+  list-style-position:inside;    /* 左インデントを増やさない */
+  padding-left:0; margin:0;
+  display:grid; grid-template-columns:1fr; gap:1rem .9rem;
+}
+@media (min-width:520px){ ul.services{ grid-template-columns:1fr 1fr; } }
+
+/* li は list-item のまま（マーカーが消えないように） */
+ul.services li{ display:list-item; }
+
+/* 見出しと説明はブロックで縦並び */
+ul.services li .title{
+  display:block; font-size:clamp(1.0rem,3.7vw,1.15rem); font-weight:700; line-height:1.35; margin:0;
+}
+ul.services li .desc{
+  display:block; font-size:clamp(.82rem,3.2vw,.92rem); color:#d0dbec; margin:.2rem 0 0 0;
+}
+
+/* 以前の大きい白丸・チェック疑似要素を完全無効化 */
+ul.services li .title::before,
+ul.services li .title::after{ content:none !important; }
+
+/* 価格エリア＆ボタン（ワイド維持） */
+.price{
+  margin-top:1.0rem; text-align:center; line-height:1.5; font-size:clamp(.9rem,3.3vw,1rem);
+  width:96%; max-width:960px; margin-left:auto; margin-right:auto;
+}
+.price span{ display:block; margin:.05rem 0; }
+.price a{ display:inline-block; margin-top:.2rem; }
+
+#applyBtn{
+  width:96%; max-width:960px; margin:1rem auto .6rem;
+  background:var(--accent); color:var(--base); font-size:clamp(1.05rem,4vw,1.2rem);
+  font-weight:800; border:none; border-radius:.9rem; padding:.85rem 0; cursor:pointer;
+}
+#applyBtn:disabled{ opacity:.5; cursor:default; }
+
+/* ステータス（DEBUG=falseならJS側で表示しない） */
+#status{
+  position:fixed; left:50%; bottom:calc(var(--safe-bottom)+8px); transform:translateX(-50%);
+  max-width:92%; font-size:.8rem; background:#00000055; color:#fff; border-radius:.6rem;
+  padding:.35rem .7rem; display:none; text-align:center; z-index:9999; backdrop-filter:saturate(120%) blur(6px); pointer-events:none;
+}
+
+@media (orientation:landscape){ html,body{ padding:0 44px 21px; } }
+@media (max-width:360px){
+  .card{ padding:1rem .9rem; gap:.75rem; }
+  .price{ font-size:.88rem; }
+  #applyBtn{ padding:.8rem 0; }
+}
+</style>
+</head>
+<body>
+
+<!-- ローディング -->
+<div id="loader" style="margin-top:40vh;text-align:center">
+  <img src="./LINE_spinner_light.svg" alt="loading" class="loader" width="30" height="30">
+</div>
+
+<!-- メインUI -->
+<h1 id="hero" style="display:none">有料提供サービス</h1>
+
+<div class="card" id="card" style="display:none">
+  <ul class="services">
+    <li>
+      <span class="title">便利情報</span>
+      <span class="desc">トイレ・おやすみ処・交通機関など</span>
+    </li>
+    <li>
+      <span class="title">踊っている場所が分かる(一部)</span>
+      <span class="desc">GPSを用いて現在の演者の位置を表示</span>
+    </li>
+    <li>
+      <span class="title">見どころ / ルートマップ</span>
+      <span class="desc">お勧めの楽しみ方のルート</span>
+    </li>
+    <li>
+      <span class="title">おわらの真髄に迫る記事・動画</span>
+      <span class="desc">300年の歴史と伝統を深掘り</span>
+    </li>
+    <li>
+      <span class="title">限定グッズ</span>
+      <span class="desc">ここでしか買えないおわらの香り</span>
+    </li>
+    <li>
+      <span class="title">綺麗な写真スポット</span>
+      <span class="desc">綺麗な写真を撮影できる場所</span>
+    </li>
+  </ul>
+</div>
+
+<div class="price" id="price" style="display:none">
+  <span>価格：100円（買い切り）</span>
+  <span>利用可能期間：8/25〜9/15</span>
+  <span>決済方法：クレジットカード / PayPay</span>
+  <span>※決済は外部ブラウザが開きます</span>
+  <a href="https://banca.wraptas.site/20eb9060750d8010b323c3c7408f09d4" target="_blank" rel="noopener noreferrer" style="text-decoration:underline;color:var(--accent)">特定商取引法に基づく表記</a><br>
+  <a href="https://banca.wraptas.site/21fb9060750d80b58ae0fca2ccd9063c" target="_blank" rel="noopener noreferrer" style="text-decoration:underline;color:var(--accent)">プライバシーポリシー</a>
+</div>
+
+<button id="applyBtn" style="display:none" disabled>お申込みはこちらから！</button>
+
+<div id="status"></div>
+<script type="module" src="./src/main.js"></script>
+</body>
+</html>
