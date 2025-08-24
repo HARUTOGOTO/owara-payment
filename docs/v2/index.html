@@ -72,7 +72,7 @@
 
   <!-- ローディング -->
   <div id="loader" style="margin-top:40vh;text-align:center">
-    <img src="./LINE_spinner_light.svg" alt="loading" class="loader" width="30" height="30">
+    <img src="../LINE_spinner_light.svg" alt="loading" class="loader" width="30" height="30">
   </div>
 
   <!-- メインUI -->
@@ -119,6 +119,14 @@
   <button id="applyBtn" style="display:none" disabled>お申込みはこちらから！</button>
 
   <div id="status"></div>
-  <script type="module" src="./src/main.v2.js"></script>
+  <script>
+  (function(){
+    const cb = new URLSearchParams(location.search).get('cb') || Date.now().toString();
+    const s  = document.createElement('script');
+    s.type   = 'module';
+    s.src    = `./src/main.v2.js?cb=${cb}`;
+    document.body.appendChild(s);
+  })();
+</script>
 </body>
 </html>
