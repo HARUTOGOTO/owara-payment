@@ -7,33 +7,38 @@
 <style>
   body{font-family:-apple-system,BlinkMacSystemFont,"Noto Sans JP",sans-serif;margin:0;padding:24px;text-align:center}
   .btn{display:inline-block;margin-top:16px;padding:10px 16px;border-radius:10px;background:#0d6efd;color:#fff;text-decoration:none}
+  .btn.secondary{background:#445b79}
   .note{color:#666;margin-top:12px}
+  #toLiff{display:none}
 </style>
 </head>
 <body>
   <h1>お支払いページを開いています…</h1>
   <p class="note">自動で開かない場合は下のボタンを押してください。</p>
-  <a id="open" class="btn" href="javascript:void(0)">決済ページを開く</a>
+  <a id="open"   class="btn" href="javascript:void(0)">決済ページを開く</a>
+  <a id="toLiff" class="btn secondary" href="javascript:void(0)">ミニアプリに戻る</a>
   <p class="note">※外部ブラウザでカード/PayPayの決済を行います</p>
 
-  <!-- ここにモジュールを入れる（docs/checkout から ../src/config.js を import） -->
+  <!-- docs/checkout から ../src/config.js を import -->
   <script type="module">
     import {
-      univapayAppId,      // JWT（config.js）
-      univapayFormId,     // フォームID（config.js）
+      univapayAppId,      // 公開OKのアプリID
+      univapayFormId,     // リンクフォームID
       siteBaseUrl,
       checkoutReturnPath
     } from "../src/config.js";
 
     const qs = new URLSearchParams(location.search);
     const amount     = Number(qs.get("amount") || "100");
-    const liffId     = qs.get("liffId") || "";
+    const liffId     = qs.get("liffId") || "";   // ← LIFF DeepLink用に保持
     const lineUserId = qs.get("lu") || "";
     const state      = qs.get("state") || "";
     const currency   = "jpy";
 
+    // UnivaPay Link Form ベース
     const base = `https://checkout.univapay.com/forms/${univapayFormId}`;
 
+    // 戻り先（絶対URLで生成）
     const back = (ok) => {
       const u = new URL(siteBaseUrl + checkoutReturnPath);
       u.searchParams.set("ok", ok);           // 1=成功 0=失敗 2=保留
@@ -43,6 +48,7 @@
       return u.toString();
     };
 
+    // 決済フォームURLを構築
     const hosted = new URL(base);
     const p = hosted.searchParams;
     p.set("appId", univapayAppId);
@@ -55,9 +61,35 @@
     p.set("pendingRedirectUrl", back("2"));
     p.set("autoRedirect", "true");
 
-    const go = () => location.replace(hosted.toString());
+    // --- 重要：初回だけ自動遷移。戻ってきたら自動では走らせない（無限ループ防止） ---
+    const KEY = "owara_bridge_once";
+
+    const go = () => {
+      sessionStorage.setItem(KEY, "1");          // 一度だけ自動
+      location.href = hosted.toString();         // 履歴を残す（戻るでこのページに戻れる）
+    };
+
+    const toLiff = () => {
+      if (liffId) {
+        // そのまま対象のLIFFを開く（LINEアプリに復帰）
+        location.href = `https://liff.line.me/${encodeURIComponent(liffId)}`;
+      } else {
+        // 保険：公式LINE OA へ（必要なら置き換えてOK）
+        location.href = "https://line.me/R/ti/p/@225hkxvw";
+      }
+    };
+
+    // クリック操作
     document.getElementById("open").addEventListener("click", go);
-    setTimeout(go, 300);
+    document.getElementById("toLiff").addEventListener("click", toLiff);
+
+    // 初回アクセス時だけ自動遷移／戻ってきたらミニアプリ復帰ボタンを表示
+    if (sessionStorage.getItem(KEY) !== "1") {
+      setTimeout(go, 300);
+    } else {
+      // 迷子時の救済UI：ミニアプリに戻るボタンを見せる
+      document.getElementById("toLiff").style.display = "inline-block";
+    }
   </script>
 
   <noscript>このページを開くには JavaScript が必要です。</noscript>
