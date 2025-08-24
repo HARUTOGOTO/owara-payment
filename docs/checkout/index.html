@@ -10,6 +10,12 @@
   .btn.secondary{background:#445b79}
   .note{color:#666;margin-top:12px}
   #toLiff{display:none}
+  /* debug時だけ出す簡易トースト（本番でも悪目立ちしない控えめデザイン）*/
+  #status{
+    position:fixed; left:50%; bottom:16px; transform:translateX(-50%);
+    background:#000c; color:#fff; padding:8px 12px; border-radius:12px;
+    font-size:14px; display:none; z-index:9999; backdrop-filter:saturate(120%) blur(4px);
+  }
 </style>
 </head>
 <body>
@@ -18,6 +24,8 @@
   <a id="open"   class="btn" href="javascript:void(0)">決済ページを開く</a>
   <a id="toLiff" class="btn secondary" href="javascript:void(0)">ミニアプリに戻る</a>
   <p class="note">※外部ブラウザでカード/PayPayの決済を行います</p>
+
+  <div id="status" aria-live="polite"></div>
 
   <!-- docs/checkout から ../src/config.js を import -->
   <script type="module">
@@ -29,6 +37,30 @@
   const lineUserId = qs.get("lu") || "";
   const state      = qs.get("state") || "";
   const debug      = qs.get("debug") === "1";
+
+  const showToast = (msg, ttl=2000) => {
+    if (!debug) return;                     // 本番は邪魔しない（debug=1 の時だけ）
+    const el = document.getElementById('status');
+    el.textContent = msg; el.style.display = 'block';
+    clearTimeout(showToast._t); showToast._t = setTimeout(()=> el.style.display='none', ttl);
+  };
+
+  const bindToLiff = (btn) => {
+    if (!btn || btn.dataset.bound) return;
+    btn.dataset.bound = '1';
+    btn.addEventListener("click", () => {
+      if (liffId) location.href = `https://liff.line.me/${encodeURIComponent(liffId)}`;
+      else        location.href = "https://line.me/R/ti/p/@225hkxvw";
+    });
+  };
+
+  const showBackBtn = () => {
+    const b = document.getElementById("toLiff");
+    if (!b) return;
+    bindToLiff(b);
+    b.style.display = "inline-block";
+    showToast("ミニアプリに戻れます");
+  };
 
   const back = (ok) => {
     const u = new URL(siteBaseUrl + checkoutReturnPath);
@@ -78,15 +110,20 @@
     setTimeout(go, 300);
   } else {
     // 迷子時の救済UI：ミニアプリに戻るボタンを見せる
-    const toLiffBtn = document.getElementById("toLiff");
-    if (toLiffBtn) {
-      toLiffBtn.style.display = "inline-block";
-      toLiffBtn.addEventListener("click", () => {
-        if (liffId) location.href = `https://liff.line.me/${encodeURIComponent(liffId)}`;
-        else        location.href = "https://line.me/R/ti/p/@225hkxvw";
-      });
-    }
+    showBackBtn();
   }
+
+  // ★ フォーカス復帰（visibilitychange）や bfcache 戻り（pageshow persisted）でも即ボタンを出す
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible' && sessionStorage.getItem(KEY) === "1") {
+      showBackBtn();
+    }
+  });
+  window.addEventListener('pageshow', (e) => {
+    if (e.persisted && sessionStorage.getItem(KEY) === "1") {
+      showBackBtn();
+    }
+  });
 </script>
   <noscript>このページを開くには JavaScript が必要です。</noscript>
 </body>
