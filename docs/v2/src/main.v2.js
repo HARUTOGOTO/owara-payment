@@ -32,7 +32,8 @@
       return;
     }
 
-    const LIFF_IDS = JSON.parse(cfg.liffIds || '[]');
+    const override = new URLSearchParams(location.search).get('liffId');
+    const LIFF_IDS = override ? [override] : JSON.parse(cfg.liffIds || '[]');
     if (!Array.isArray(LIFF_IDS) || LIFF_IDS.length === 0) {
       alert('設定エラー：LIFF ID が未設定です（config.v2.js）');
       return;
