@@ -1,3 +1,4 @@
+// C:\Users\gotou\owara-payment\docs\src\main.js
 // LIFF → /checkout ブリッジ固定（/checkout→UnivaPay は location.href で履歴を残す）
 // 言語は ?lang → LIFF.getLanguage → navigator.language → 'ja' の優先度で自動切替
 
@@ -6,6 +7,7 @@
   const qs = new URLSearchParams(location.search);
   const cb = qs.get('cb') || Date.now().toString();
   const DEBUG = qs.get('debug') === '1';
+  const autoClose = qs.get('ac') === '1'; // ac=1 で開いたら即クローズ（LINE内のみ）
 
   const setStatus = (msg, ttl = 3500) => {
     if (!DEBUG) return;
@@ -20,7 +22,7 @@
   addEventListener('error', (e) => setStatus('ERR: ' + (e?.message || e)));
   addEventListener('unhandledrejection', (e) => setStatus('REJ: ' + (e?.reason?.message || e?.reason || 'unhandled')));
 
-  // ====== I18N 定義 ======
+  // ====== I18N ======
   const I18N = {
     ja: {
       title: 'おわら風の盆｜有料メニュー決済 (LIFF)',
@@ -47,12 +49,12 @@
       title: 'Owara Kaze-no-Bon | Premium Purchase (LIFF)',
       hero: 'Premium features',
       services: [
-        { title: 'Festival Information',          desc: 'Toilets, rest spots, transport' },
-        { title: 'Dance Spot Finder(partial)',    desc: 'See performer locations via GPS (partial)' },
-        { title: 'Highlights & Route Map',      desc: 'Suggested routes to enjoy' },
+        { title: 'Useful information',          desc: 'Toilets, rest spots, transport' },
+        { title: 'Where people are dancing',    desc: 'See performer locations via GPS (partial)' },
+        { title: 'Highlights & route map',      desc: 'Suggested routes to enjoy' },
         { title: 'Articles & videos',           desc: 'Dive into 300 years of history' },
-        { title: 'Exclusive Goods',               desc: 'Exclusive Owara fragrance' },
-        { title: 'Photo Spots',                 desc: 'Great places for beautiful shots' },
+        { title: 'Limited goods',               desc: 'Exclusive Owara fragrance' },
+        { title: 'Photo spots',                 desc: 'Great places for beautiful shots' },
       ],
       priceLines: [
         'Price: ¥100 (one-time)',
@@ -66,38 +68,33 @@
     },
   };
 
-  // UI描画
   function renderUI(dict) {
-    // タイトルと <html lang>
     document.title = dict.title;
-    document.documentElement.lang = dict === I18N.en ? 'en' : 'ja';
+    document.documentElement.lang = (dict === I18N.en) ? 'en' : 'ja';
 
-    // 見出し
     $('hero').textContent = dict.hero;
 
-    // サービス（ulを再生成）
     const ul = $('card').querySelector('ul.services');
     ul.innerHTML = dict.services
-      .map(item =>
-        `<li><span class="title">${item.title}</span><span class="desc">${item.desc}</span></li>`
-      ).join('');
+      .map(item => `<li><span class="title">${item.title}</span><span class="desc">${item.desc}</span></li>`)
+      .join('');
 
-    // 価格など
     const priceEl = $('price');
     const anchors = priceEl.querySelectorAll('a');
-    priceEl.querySelectorAll('span').forEach(s => s.remove()); // 一旦クリア（aは残す）
+    priceEl.querySelectorAll('span').forEach(s => s.remove());
     dict.priceLines.forEach(line => {
-      const sp = document.createElement('span'); sp.textContent = line; priceEl.insertBefore(sp, anchors[0] || null);
+      const sp = document.createElement('span');
+      sp.textContent = line;
+      priceEl.insertBefore(sp, anchors[0] || null);
     });
     if (anchors[0]) anchors[0].textContent = dict.tokushoText;
     if (anchors[1]) anchors[1].textContent = dict.privacyText;
 
-    // ボタン
     $('applyBtn').textContent = dict.applyText;
   }
 
   (async () => {
-    // 1) 設定読み込み
+    // 1) 設定読み込み（docs/src/config.js）
     let cfg;
     try {
       cfg = await import(`./config.js?cb=${encodeURIComponent(cb)}`);
@@ -125,6 +122,11 @@
       const usedId = await initLIFF();
       await liff.ready;
       setStatus(`LIFF ready: ${usedId}`);
+
+      // ac=1 で開かれた時は即クローズ（LINE内のみ）
+      if (autoClose && liff.isInClient && liff.isInClient()) {
+        try { liff.closeWindow(); return; } catch {}
+      }
 
       // 3) 言語決定（?lang → LIFF → Browser → ja）
       const paramLang = (qs.get('lang') || '').toLowerCase();
@@ -163,7 +165,7 @@
         }
       })();
 
-      // 6) 申込 → create-checkout → /checkout?co=... を外部ブラウザで開く
+      // 6) 申込 → create-checkout → /checkout?co=... を外部ブラウザで開く（開いたらLIFF自動クローズ）
       $('applyBtn').addEventListener('click', async () => {
         try {
           if (!liff.isInClient()) {
@@ -212,8 +214,20 @@
 
           const bridge = `${cfg.siteBaseUrl}/checkout/index.html?${params.toString()}`;
           setStatus('open bridge: ' + bridge);
-          if (liff.openWindow) liff.openWindow({ url: bridge, external: true });
-          else location.href = bridge;
+
+          // 外部を開いたら即 LIFF を閉じる（保険で少し遅延 & visibility/pagehideでも閉じる）
+          const closeSoon = () => { try { if (liff.isInClient()) liff.closeWindow(); } catch(e) {} };
+          const onHide = () => { closeSoon(); document.removeEventListener('visibilitychange', onHide); window.removeEventListener('pagehide', onHide); };
+          document.addEventListener('visibilitychange', onHide);
+          window.addEventListener('pagehide', onHide);
+
+          if (liff.openWindow) {
+            liff.openWindow({ url: bridge, external: true });
+            setTimeout(closeSoon, 200);
+          } else {
+            location.href = bridge;
+            setTimeout(closeSoon, 300);
+          }
 
         } catch (e) {
           console.error('apply click failed', e);
