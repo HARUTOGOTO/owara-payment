@@ -60,15 +60,16 @@
 
   <div id="status"></div>
 
-  <script>
-    (function () {
-      const qs = new URLSearchParams(location.search);
-      const cb = qs.get('cb') || Date.now().toString();
-      const s  = document.createElement('script');
-      s.type   = 'module';
-      s.src    = `./src/main.v2.js?cb=${encodeURIComponent(cb)}`;
-      document.body.appendChild(s);
-    })();
-  </script>
+<script>
+  (function () {
+    const qs = new URLSearchParams(location.search);
+    const cb = qs.get('cb') || Date.now().toString();
+    const s  = document.createElement('script');
+    s.type   = 'module';
+    /* ▼ここを main.v2.js に */
+    s.src    = `./src/main.v2.js?cb=${encodeURIComponent(cb)}`;
+    document.body.appendChild(s);
+  })();
+</script>
 </body>
 </html>

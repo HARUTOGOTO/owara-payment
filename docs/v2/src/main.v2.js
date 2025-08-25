@@ -1,3 +1,4 @@
+// C:\Users\gotou\owara-payment\docs\v2\src\main.v2.js
 // LIFF → /checkout ブリッジ固定（/checkout→UnivaPay は location.href で履歴を残す）
 // 言語は ?lang → LIFF.getLanguage → navigator.language → 'ja' の優先度で自動切替
 
@@ -6,6 +7,7 @@
   const qs = new URLSearchParams(location.search);
   const cb = qs.get('cb') || Date.now().toString();
   const DEBUG = qs.get('debug') === '1';
+  const autoClose = qs.get('ac') === '1'; // ← 追加：ac=1 で開いたら即クローズ用フラグ
 
   const setStatus = (msg, ttl = 3500) => {
     if (!DEBUG) return;
@@ -70,7 +72,7 @@
   function renderUI(dict) {
     // タイトルと <html lang>
     document.title = dict.title;
-    document.documentElement.lang = dict === I18N.en ? 'en' : 'ja';
+    document.documentElement.lang = (dict === I18N.en) ? 'en' : 'ja';
 
     // 見出し
     $('hero').textContent = dict.hero;
@@ -97,7 +99,7 @@
   }
 
   (async () => {
-    // 1) 設定読み込み
+    // 1) 設定読み込み（v2用）
     let cfg;
     try {
       cfg = await import(`./config.v2.js?cb=${encodeURIComponent(cb)}`);
@@ -125,6 +127,11 @@
       const usedId = await initLIFF();
       await liff.ready;
       setStatus(`LIFF ready: ${usedId}`);
+
+      // ac=1 で開かれた時は即クローズ（LINE内のみ）
+      if (autoClose && liff.isInClient && liff.isInClient()) {
+        try { liff.closeWindow(); return; } catch {}
+      }
 
       // 3) 言語決定（?lang → LIFF → Browser → ja）
       const paramLang = (qs.get('lang') || '').toLowerCase();
@@ -163,7 +170,7 @@
         }
       })();
 
-      // 6) 申込 → create-checkout → /checkout?co=... を外部ブラウザで開く
+      // 6) 申込 → create-checkout → /checkout?co=... を外部ブラウザで開く（外部起動直後にLIFFを閉じる）
       $('applyBtn').addEventListener('click', async () => {
         try {
           if (!liff.isInClient()) {
@@ -212,8 +219,21 @@
 
           const bridge = `${cfg.siteBaseUrl}/checkout/index.html?${params.toString()}`;
           setStatus('open bridge: ' + bridge);
-          if (liff.openWindow) liff.openWindow({ url: bridge, external: true });
-          else location.href = bridge;
+
+          // ===== 外部を開いたら即 LIFF を閉じる（端末差に配慮して少し遅延）=====
+          const closeSoon = () => { try { if (liff.isInClient()) liff.closeWindow(); } catch(e) {} };
+          const onHide = () => { closeSoon(); document.removeEventListener('visibilitychange', onHide); window.removeEventListener('pagehide', onHide); };
+          document.addEventListener('visibilitychange', onHide);
+          window.addEventListener('pagehide', onHide);
+
+          if (liff.openWindow) {
+            liff.openWindow({ url: bridge, external: true });
+            setTimeout(closeSoon, 200);
+          } else {
+            location.href = bridge;
+            setTimeout(closeSoon, 300);
+          }
+          // ===== ここまで =====
 
         } catch (e) {
           console.error('apply click failed', e);
