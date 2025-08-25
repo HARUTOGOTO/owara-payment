@@ -100,7 +100,7 @@
     // 1) 設定読み込み
     let cfg;
     try {
-      cfg = await import(`./config.js?cb=${encodeURIComponent(cb)}`);
+      cfg = await import(`./config.v2.js?cb=${encodeURIComponent(cb)}`);
     } catch (e) {
       setStatus('config.js の読込に失敗: ' + (e?.message || e));
       alert('初期化に失敗しました。少し待って開き直してください。');
