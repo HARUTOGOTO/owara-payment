@@ -1,0 +1,53 @@
+name: Deploy docs to GitHub Pages
+
+on:
+  push:
+    branches: ["main"]          # ← デフォルトブランチ名に合わせて
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# 古い実行を自動キャンセル（キュー詰まり防止）
+concurrency:
+  group: "pages"
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # ---（必要なら）設定ファイルの生成。不要なら丸ごと削除してOK ---
+      # PowerShell スクリプトで docs/src/config.js 等を作る例
+      # - name: Generate config files
+      #   working-directory: docs/scripts
+      #   shell: pwsh
+      #   run: ./generate-config.ps1
+      #   env:
+      #     LIFF_IDS: ${{ secrets.LIFF_IDS }}
+      #     UNIVAPAY_APP_ID: ${{ secrets.UNIVAPAY_APP_ID }}
+      #     BACKEND_ENDPOINT: ${{ secrets.BACKEND_ENDPOINT }}
+
+      # Jekyll 無効化（アンダースコア始まりのファイルがある場合）
+      - run: echo "" > docs/.nojekyll
+
+      # docs フォルダをそのまま配信
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: docs
+
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
