@@ -43,7 +43,7 @@
       ],
       tokushoText: '特定商取引法に基づく表記',
       privacyText: 'プライバシーポリシー',
-      applyText: 'お申込みはこちらから！',
+      applyText: '100円の支払いはこちらから！',
     },
     en: {
       title: 'Owara Kaze-no-Bon | Premium Purchase (LIFF)',
